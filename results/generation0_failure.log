@@ -1,0 +1,38 @@
+Generation-0 execution attempt
+Date: 2026-09-09
+Plan: G0-L8-SM120-EXACT-B32
+Candidate branch: codex/experiment/generation0-sm120-20260909
+Candidate commit: a0768277e9b9373c3cec3cfef18c270be8fc43fc
+Champion ref: codex/champion/0000-validated-bdh-baseline -> 908b0b1438ba038d319adf97787aac08f213b590
+
+Command:
+python scripts/run_generation0.py --execute --candidate-root 'C:\Users\arahe\OneDrive\Documents\ChatGPT\ICLR-g0-candidate-20260909' --command-template 'python -c "import sys; sys.exit(97)"'
+
+The command template was a sentinel and was not invoked: the harness failed at the required PyTorch/CUDA preflight.
+
+Environment inventory:
+NVIDIA GeForce RTX 4060 Laptop GPU, compute capability 8.9, driver 595.79, 8188 MiB
+
+Full harness console output:
+Traceback (most recent call last):
+  File "C:\Users\arahe\OneDrive\Documents\ChatGPT\ICLR\src\icrl_autoresearch\gpu_harness.py", line 75, in assert_target_gpu
+    import torch
+ModuleNotFoundError: No module named 'torch'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\arahe\OneDrive\Documents\ChatGPT\ICLR\scripts\run_generation0.py", line 59, in <module>
+    main()
+  File "C:\Users\arahe\OneDrive\Documents\ChatGPT\ICLR\scripts\run_generation0.py", line 48, in main
+    result = execute_plan(
+             ^^^^^^^^^^^^^
+  File "C:\Users\arahe\OneDrive\Documents\ChatGPT\ICLR\src\icrl_autoresearch\gpu_harness.py", line 231, in execute_plan
+    gpu = assert_target_gpu()
+          ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\arahe\OneDrive\Documents\ChatGPT\ICLR\src\icrl_autoresearch\gpu_harness.py", line 77, in assert_target_gpu
+    raise RuntimeError("GPU execution requires PyTorch with CUDA support") from exc
+RuntimeError: GPU execution requires PyTorch with CUDA support
+HARNESS_EXIT=1
+
+Outcome: fail closed before model execution; results/generation0.jsonl was not created; no run slots were appended; champion was not modified.
