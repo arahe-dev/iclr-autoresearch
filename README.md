@@ -31,6 +31,7 @@ The reusable infrastructure lives under `src/icrl_autoresearch/`:
 - `generation0.py`: L8 plus full-foldover matrix, control verification, predicted effects, interaction aliases, randomized run order, and per-arm patch specs.
 - `results.py`: append-only oracle-gated JSONL result writer.
 - `gpu_harness.py`: explicit SM120 candidate-worktree execution adapter; champion mutation is refused.
+- `scripts/run_generation0_sm120.py`: strict target-host launcher with RTX PRO 6000/SM120 checks, streamed transcript, and fail-closed oracle/memory gates.
 
 ## Safe checks
 
@@ -42,6 +43,7 @@ python scripts/run_doe.py
 python scripts/decide.py experiments/0001_native_read_reverted/report.json
 python scripts/generate_generation0.py
 python scripts/run_generation0.py
+python scripts/run_generation0_sm120.py
 ```
 
 The first command is the repository integrity check. The plan-only commands do not launch CUDA. To execute, supply a separate candidate worktree and command, for example:
@@ -53,3 +55,13 @@ python scripts/run_generation0.py --execute `
 ```
 
 The command must emit one oracle-passing result JSON object per slot. The harness appends validated records to `results/generation0.jsonl`; it never modifies the champion branch.
+
+On the exact target host, use the strict launcher for the full campaign. The candidate runner must implement the already-reviewed factor patch specs and emit a final JSON object containing `oracle.status=PASS`, `oracle.same_document_reset=PASS`, `oracle.tied_qk_backward=PASS`, positive `latency_ms` and `real_input_tok_s`, and a positive `peak_GiB` below device capacity. The launcher stops at the first failed oracle, memory, process, or contract gate and appends no invalid record:
+
+```bash
+python scripts/run_generation0_sm120.py --execute \
+  --candidate-root /path/to/codex/experiment/generation0-sm120 \
+  --command-template 'python candidate_runner.py --run-id {run_id} --arm-id {arm_id}'
+```
+
+The launcher writes the append-only ledger to `results/generation0.jsonl` and tees all runner output to `results/generation0_console.log`. It requires the exact RTX PRO 6000 SM120 environment and leaves the champion immutable.
