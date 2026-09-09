@@ -6,5 +6,9 @@
   "append_only": true,
   "duplicate_run_ids_allowed": false,
   "oracle_required_before_timing": true,
-  "champion_modified": false
+  "execution_allowed": true,
+  "execution_requires_explicit_flag": true,
+  "candidate_worktree_only": true,
+  "champion_modified": false,
+  "champion_immutable_until_analysis": true
 }

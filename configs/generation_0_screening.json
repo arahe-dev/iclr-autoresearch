@@ -1,12 +1,41 @@
 {
   "schema_version": 1,
   "generation": 0,
-  "status": "PLANNED_NO_EXECUTION",
+  "status": "READY_FOR_EXPLICIT_EXECUTION",
   "purpose": "Taguchi-style L8 screening plan around exact execution representations only",
   "baseline_experiment": "0000",
   "science_delta_allowed": false,
-  "execution_allowed": false,
-  "design": "L8(2^7) orthogonal array with 0000 control anchor; randomized/interleaved replicated blocks; no cross-factor model variants are run by this scaffold",
+  "execution_allowed": true,
+  "execution_requires_explicit_flag": true,
+  "execution_mode": "candidate_worktree_only_gpu_harness",
+  "design": "L8(2^7) orthogonal array plus an 8-arm full foldover; 0000 control anchor; randomized/interleaved replicated blocks; no champion mutation",
+  "control_reference": {
+    "experiment_id": "0000",
+    "champion_commit": "908b0b1",
+    "champion_branch": "codex/champion/0000-validated-bdh-baseline",
+    "canonical_source": "vendor/canonical/icrl_reintegrated_bdh_baseline_v1.py",
+    "canonical_source_sha256": "947f8b33e740adede3e13382f8cb9e8e374d845de75e282bda5feb05c582f624",
+    "checkpoint_policy": "gram_only_sac",
+    "checkpoint_policy_description": "Exact experiment-0000 Gram-only SAC: save the full Gram/QK score work required by the accepted control and recompute non-Gram intermediates; no candidate prefix-read or QK-block-only branch is selected.",
+    "factor_levels": {
+      "full_symmetric_qk_sm120": "control_full_symmetric_qk",
+      "qk_backward": "control_tied_qk_vjp",
+      "dx_gemm_backend": "control_dx_gemm",
+      "dy_gemm_backend": "control_dy_gemm",
+      "e_gemm": "reference_e_gemm",
+      "dy_relu_epilogue_layout": "materialized_baseline_layout",
+      "checkpoint_policy": "gram_only_sac"
+    },
+    "control_equivalence": "byte-equivalent canonical source and behavior-equivalent exact Arm-A treatment before any factor is enabled"
+  },
+  "foldover": {
+    "type": "full_bitwise_complement",
+    "source_rows": 8,
+    "additional_arms": 8,
+    "total_treatment_arms": 16,
+    "main_effect_two_factor_aliases_resolved": true,
+    "remaining_aliases": "two-factor interactions remain grouped within their original three-term classes"
+  },
   "objective": {
     "benchmark": "B32 exact F+B",
     "control_latency_ms_approx": 1655.0,
@@ -95,7 +124,7 @@
     {
       "name": "checkpoint_policy",
       "question": "Which exact recomputation boundary lowers memory without changing the training graph?",
-      "levels": ["whole_level", "selective_exact_projection_only"],
+      "levels": ["gram_only_sac", "selective_exact_projection_only"],
       "operator_class": "exact_training_schedule",
       "science_change": false,
       "prior_evidence": ["hist-temporal-loom-chunked-oom-20260908"],
@@ -121,10 +150,22 @@
     {"row_id": "G0-06", "role": "L8_arm", "levels": "1100110"},
     {"row_id": "G0-07", "role": "L8_arm", "levels": "1110001"}
   ],
+  "foldover_rows": [
+    {"row_id": "G0-F00", "foldover_of": "G0-00", "role": "full_foldover_arm", "levels": "1111111"},
+    {"row_id": "G0-F01", "foldover_of": "G0-01", "role": "full_foldover_arm", "levels": "1101000"},
+    {"row_id": "G0-F02", "foldover_of": "G0-02", "role": "full_foldover_arm", "levels": "1010100"},
+    {"row_id": "G0-F03", "foldover_of": "G0-03", "role": "full_foldover_arm", "levels": "1000011"},
+    {"row_id": "G0-F04", "foldover_of": "G0-04", "role": "full_foldover_arm", "levels": "0110010"},
+    {"row_id": "G0-F05", "foldover_of": "G0-05", "role": "full_foldover_arm", "levels": "0100101"},
+    {"row_id": "G0-F06", "foldover_of": "G0-06", "role": "full_foldover_arm", "levels": "0011001"},
+    {"row_id": "G0-F07", "foldover_of": "G0-07", "role": "full_foldover_arm", "levels": "0001110"}
+  ],
   "analysis": {
     "primary_model": "B32_latency_ms ~ main_effects + block_id + within_block_position",
     "effect_coding": "-1 control / +1 exact execution candidate",
-    "interaction_policy": "treat L8 aliases as unresolved; promote only to a full factorial round",
-    "promotion_to_full_factorial": "top factors must pass oracle, no memory regression, and have stable sign across randomized blocks"
+    "interaction_policy": "full foldover de-aliases main effects from two-factor interactions; retain the remaining three-term interaction groups as unresolved and promote only to a full factorial round",
+    "promotion_to_full_factorial": "top factors must pass oracle, no memory regression, and have stable sign across randomized blocks",
+    "foldover_policy": "use the full foldover to de-alias main effects from two-factor interactions; do not interpret the remaining three-way interaction groups as individually identified",
+    "control_policy": "G0-00 must remain an exact 0000/908b0b1 Gram-only SAC control; any mismatch fails closed before GPU execution"
   }
 }

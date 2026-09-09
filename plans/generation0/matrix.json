@@ -2,6 +2,7 @@
   "arms": [
     {
       "arm_id": "G0-00",
+      "foldover": false,
       "generator_bits": {
         "x": 0,
         "y": 0,
@@ -20,6 +21,15 @@
       "patch_spec": {
         "active_high_factors": [],
         "allowed_change_class": "execution_representation_only",
+        "champion_mutation": "forbidden",
+        "control_reference": {
+          "canonical_source": "vendor/canonical/icrl_reintegrated_bdh_baseline_v1.py",
+          "canonical_source_sha256": "947f8b33e740adede3e13382f8cb9e8e374d845de75e282bda5feb05c582f624",
+          "champion_branch": "codex/champion/0000-validated-bdh-baseline",
+          "champion_commit": "908b0b1",
+          "checkpoint_policy": "gram_only_sac",
+          "experiment_id": "0000"
+        },
         "forbidden_operations": [
           "architecture or equation change",
           "approximate/quantized operator",
@@ -48,7 +58,7 @@
           "FP32 oracle and gradient gates pass before timing"
         ],
         "selected_levels": {
-          "checkpoint_policy": "whole_level",
+          "checkpoint_policy": "gram_only_sac",
           "dx_gemm_backend": "control_dx_gemm",
           "dy_gemm_backend": "control_dy_gemm",
           "dy_relu_epilogue_layout": "materialized_baseline_layout",
@@ -56,13 +66,14 @@
           "full_symmetric_qk_sm120": "control_full_symmetric_qk",
           "qk_backward": "control_tied_qk_vjp"
         },
-        "status": "SPEC_ONLY_NO_EXECUTION"
+        "status": "READY_FOR_EXPLICIT_EXECUTION"
       },
       "role": "baseline_control",
       "row_index": 0
     },
     {
       "arm_id": "G0-01",
+      "foldover": false,
       "generator_bits": {
         "x": 0,
         "y": 0,
@@ -86,6 +97,15 @@
           "checkpoint_policy"
         ],
         "allowed_change_class": "execution_representation_only",
+        "champion_mutation": "forbidden",
+        "control_reference": {
+          "canonical_source": "vendor/canonical/icrl_reintegrated_bdh_baseline_v1.py",
+          "canonical_source_sha256": "947f8b33e740adede3e13382f8cb9e8e374d845de75e282bda5feb05c582f624",
+          "champion_branch": "codex/champion/0000-validated-bdh-baseline",
+          "champion_commit": "908b0b1",
+          "checkpoint_policy": "gram_only_sac",
+          "experiment_id": "0000"
+        },
         "forbidden_operations": [
           "architecture or equation change",
           "approximate/quantized operator",
@@ -105,22 +125,22 @@
           {
             "factor": "dx_gemm_backend",
             "operation": "Change only the Dx GEMM backend/launch; preserve dimensions, operand values, logical layout, BF16 operands, and FP32 accumulation/master-weight semantics.",
-            "status": "SPEC_ONLY"
+            "status": "READY_FOR_EXPLICIT_EXECUTION"
           },
           {
             "factor": "e_gemm",
             "operation": "Change only the E GEMM backend/launch; preserve exact E values, dimensions, layout contract, and FP32 accumulation/master weights.",
-            "status": "SPEC_ONLY"
+            "status": "READY_FOR_EXPLICIT_EXECUTION"
           },
           {
             "factor": "dy_relu_epilogue_layout",
             "operation": "Fuse or change only the Dy\u2192ReLU epilogue/layout while preserving exact ReLU semantics, output layout contract, and the independent oracle tolerance.",
-            "status": "SPEC_ONLY"
+            "status": "READY_FOR_EXPLICIT_EXECUTION"
           },
           {
             "factor": "checkpoint_policy",
-            "operation": "Change only the checkpoint boundary to whole-level or selective exact projection-only recomputation; do not checkpoint the killed candidate QK-block read path and do not change the forward graph.",
-            "status": "SPEC_ONLY"
+            "operation": "Change only the checkpoint boundary from the exact experiment-0000 Gram-only SAC control to selective exact projection-only recomputation; do not checkpoint the killed candidate QK-block read path and do not change the forward graph.",
+            "status": "READY_FOR_EXPLICIT_EXECUTION"
           }
         ],
         "parent_experiment": "0000",
@@ -143,13 +163,14 @@
           "full_symmetric_qk_sm120": "control_full_symmetric_qk",
           "qk_backward": "control_tied_qk_vjp"
         },
-        "status": "SPEC_ONLY_NO_EXECUTION"
+        "status": "READY_FOR_EXPLICIT_EXECUTION"
       },
       "role": "L8_screening_arm",
       "row_index": 1
     },
     {
       "arm_id": "G0-02",
+      "foldover": false,
       "generator_bits": {
         "x": 0,
         "y": 1,
@@ -173,6 +194,15 @@
           "checkpoint_policy"
         ],
         "allowed_change_class": "execution_representation_only",
+        "champion_mutation": "forbidden",
+        "control_reference": {
+          "canonical_source": "vendor/canonical/icrl_reintegrated_bdh_baseline_v1.py",
+          "canonical_source_sha256": "947f8b33e740adede3e13382f8cb9e8e374d845de75e282bda5feb05c582f624",
+          "champion_branch": "codex/champion/0000-validated-bdh-baseline",
+          "champion_commit": "908b0b1",
+          "checkpoint_policy": "gram_only_sac",
+          "experiment_id": "0000"
+        },
         "forbidden_operations": [
           "architecture or equation change",
           "approximate/quantized operator",
@@ -192,22 +222,22 @@
           {
             "factor": "qk_backward",
             "operation": "Change only the exact tied-QK VJP dispatch; accumulate the query-role and key-role contributions into the single Q gradient without materializing an independent K or changing the VJP.",
-            "status": "SPEC_ONLY"
+            "status": "READY_FOR_EXPLICIT_EXECUTION"
           },
           {
             "factor": "dy_gemm_backend",
             "operation": "Change only the Dy GEMM backend/launch; preserve exact Dy values and all downstream writer semantics.",
-            "status": "SPEC_ONLY"
+            "status": "READY_FOR_EXPLICIT_EXECUTION"
           },
           {
             "factor": "dy_relu_epilogue_layout",
             "operation": "Fuse or change only the Dy\u2192ReLU epilogue/layout while preserving exact ReLU semantics, output layout contract, and the independent oracle tolerance.",
-            "status": "SPEC_ONLY"
+            "status": "READY_FOR_EXPLICIT_EXECUTION"
           },
           {
             "factor": "checkpoint_policy",
-            "operation": "Change only the checkpoint boundary to whole-level or selective exact projection-only recomputation; do not checkpoint the killed candidate QK-block read path and do not change the forward graph.",
-            "status": "SPEC_ONLY"
+            "operation": "Change only the checkpoint boundary from the exact experiment-0000 Gram-only SAC control to selective exact projection-only recomputation; do not checkpoint the killed candidate QK-block read path and do not change the forward graph.",
+            "status": "READY_FOR_EXPLICIT_EXECUTION"
           }
         ],
         "parent_experiment": "0000",
@@ -230,13 +260,14 @@
           "full_symmetric_qk_sm120": "control_full_symmetric_qk",
           "qk_backward": "native_tied_qk_vjp"
         },
-        "status": "SPEC_ONLY_NO_EXECUTION"
+        "status": "READY_FOR_EXPLICIT_EXECUTION"
       },
       "role": "L8_screening_arm",
       "row_index": 2
     },
     {
       "arm_id": "G0-03",
+      "foldover": false,
       "generator_bits": {
         "x": 0,
         "y": 1,
@@ -260,6 +291,15 @@
           "e_gemm"
         ],
         "allowed_change_class": "execution_representation_only",
+        "champion_mutation": "forbidden",
+        "control_reference": {
+          "canonical_source": "vendor/canonical/icrl_reintegrated_bdh_baseline_v1.py",
+          "canonical_source_sha256": "947f8b33e740adede3e13382f8cb9e8e374d845de75e282bda5feb05c582f624",
+          "champion_branch": "codex/champion/0000-validated-bdh-baseline",
+          "champion_commit": "908b0b1",
+          "checkpoint_policy": "gram_only_sac",
+          "experiment_id": "0000"
+        },
         "forbidden_operations": [
           "architecture or equation change",
           "approximate/quantized operator",
@@ -279,22 +319,22 @@
           {
             "factor": "qk_backward",
             "operation": "Change only the exact tied-QK VJP dispatch; accumulate the query-role and key-role contributions into the single Q gradient without materializing an independent K or changing the VJP.",
-            "status": "SPEC_ONLY"
+            "status": "READY_FOR_EXPLICIT_EXECUTION"
           },
           {
             "factor": "dx_gemm_backend",
             "operation": "Change only the Dx GEMM backend/launch; preserve dimensions, operand values, logical layout, BF16 operands, and FP32 accumulation/master-weight semantics.",
-            "status": "SPEC_ONLY"
+            "status": "READY_FOR_EXPLICIT_EXECUTION"
           },
           {
             "factor": "dy_gemm_backend",
             "operation": "Change only the Dy GEMM backend/launch; preserve exact Dy values and all downstream writer semantics.",
-            "status": "SPEC_ONLY"
+            "status": "READY_FOR_EXPLICIT_EXECUTION"
           },
           {
             "factor": "e_gemm",
             "operation": "Change only the E GEMM backend/launch; preserve exact E values, dimensions, layout contract, and FP32 accumulation/master weights.",
-            "status": "SPEC_ONLY"
+            "status": "READY_FOR_EXPLICIT_EXECUTION"
           }
         ],
         "parent_experiment": "0000",
@@ -309,7 +349,7 @@
           "FP32 oracle and gradient gates pass before timing"
         ],
         "selected_levels": {
-          "checkpoint_policy": "whole_level",
+          "checkpoint_policy": "gram_only_sac",
           "dx_gemm_backend": "native_sm120_dx_gemm",
           "dy_gemm_backend": "native_sm120_dy_gemm",
           "dy_relu_epilogue_layout": "materialized_baseline_layout",
@@ -317,13 +357,14 @@
           "full_symmetric_qk_sm120": "control_full_symmetric_qk",
           "qk_backward": "native_tied_qk_vjp"
         },
-        "status": "SPEC_ONLY_NO_EXECUTION"
+        "status": "READY_FOR_EXPLICIT_EXECUTION"
       },
       "role": "L8_screening_arm",
       "row_index": 3
     },
     {
       "arm_id": "G0-04",
+      "foldover": false,
       "generator_bits": {
         "x": 1,
         "y": 0,
@@ -347,6 +388,15 @@
           "checkpoint_policy"
         ],
         "allowed_change_class": "execution_representation_only",
+        "champion_mutation": "forbidden",
+        "control_reference": {
+          "canonical_source": "vendor/canonical/icrl_reintegrated_bdh_baseline_v1.py",
+          "canonical_source_sha256": "947f8b33e740adede3e13382f8cb9e8e374d845de75e282bda5feb05c582f624",
+          "champion_branch": "codex/champion/0000-validated-bdh-baseline",
+          "champion_commit": "908b0b1",
+          "checkpoint_policy": "gram_only_sac",
+          "experiment_id": "0000"
+        },
         "forbidden_operations": [
           "architecture or equation change",
           "approximate/quantized operator",
@@ -366,22 +416,22 @@
           {
             "factor": "full_symmetric_qk_sm120",
             "operation": "Change only the attention backend dispatch to a native SM120 full/symmetric QK implementation; retain full T\u00d7T logical scores, strict-exclusive same-document masking, Q=K, shared V, no softmax, and no scale.",
-            "status": "SPEC_ONLY"
+            "status": "READY_FOR_EXPLICIT_EXECUTION"
           },
           {
             "factor": "dy_gemm_backend",
             "operation": "Change only the Dy GEMM backend/launch; preserve exact Dy values and all downstream writer semantics.",
-            "status": "SPEC_ONLY"
+            "status": "READY_FOR_EXPLICIT_EXECUTION"
           },
           {
             "factor": "e_gemm",
             "operation": "Change only the E GEMM backend/launch; preserve exact E values, dimensions, layout contract, and FP32 accumulation/master weights.",
-            "status": "SPEC_ONLY"
+            "status": "READY_FOR_EXPLICIT_EXECUTION"
           },
           {
             "factor": "checkpoint_policy",
-            "operation": "Change only the checkpoint boundary to whole-level or selective exact projection-only recomputation; do not checkpoint the killed candidate QK-block read path and do not change the forward graph.",
-            "status": "SPEC_ONLY"
+            "operation": "Change only the checkpoint boundary from the exact experiment-0000 Gram-only SAC control to selective exact projection-only recomputation; do not checkpoint the killed candidate QK-block read path and do not change the forward graph.",
+            "status": "READY_FOR_EXPLICIT_EXECUTION"
           }
         ],
         "parent_experiment": "0000",
@@ -404,13 +454,14 @@
           "full_symmetric_qk_sm120": "native_sm120_full_symmetric_qk",
           "qk_backward": "control_tied_qk_vjp"
         },
-        "status": "SPEC_ONLY_NO_EXECUTION"
+        "status": "READY_FOR_EXPLICIT_EXECUTION"
       },
       "role": "L8_screening_arm",
       "row_index": 4
     },
     {
       "arm_id": "G0-05",
+      "foldover": false,
       "generator_bits": {
         "x": 1,
         "y": 0,
@@ -434,6 +485,15 @@
           "dy_relu_epilogue_layout"
         ],
         "allowed_change_class": "execution_representation_only",
+        "champion_mutation": "forbidden",
+        "control_reference": {
+          "canonical_source": "vendor/canonical/icrl_reintegrated_bdh_baseline_v1.py",
+          "canonical_source_sha256": "947f8b33e740adede3e13382f8cb9e8e374d845de75e282bda5feb05c582f624",
+          "champion_branch": "codex/champion/0000-validated-bdh-baseline",
+          "champion_commit": "908b0b1",
+          "checkpoint_policy": "gram_only_sac",
+          "experiment_id": "0000"
+        },
         "forbidden_operations": [
           "architecture or equation change",
           "approximate/quantized operator",
@@ -453,22 +513,22 @@
           {
             "factor": "full_symmetric_qk_sm120",
             "operation": "Change only the attention backend dispatch to a native SM120 full/symmetric QK implementation; retain full T\u00d7T logical scores, strict-exclusive same-document masking, Q=K, shared V, no softmax, and no scale.",
-            "status": "SPEC_ONLY"
+            "status": "READY_FOR_EXPLICIT_EXECUTION"
           },
           {
             "factor": "dx_gemm_backend",
             "operation": "Change only the Dx GEMM backend/launch; preserve dimensions, operand values, logical layout, BF16 operands, and FP32 accumulation/master-weight semantics.",
-            "status": "SPEC_ONLY"
+            "status": "READY_FOR_EXPLICIT_EXECUTION"
           },
           {
             "factor": "dy_gemm_backend",
             "operation": "Change only the Dy GEMM backend/launch; preserve exact Dy values and all downstream writer semantics.",
-            "status": "SPEC_ONLY"
+            "status": "READY_FOR_EXPLICIT_EXECUTION"
           },
           {
             "factor": "dy_relu_epilogue_layout",
             "operation": "Fuse or change only the Dy\u2192ReLU epilogue/layout while preserving exact ReLU semantics, output layout contract, and the independent oracle tolerance.",
-            "status": "SPEC_ONLY"
+            "status": "READY_FOR_EXPLICIT_EXECUTION"
           }
         ],
         "parent_experiment": "0000",
@@ -483,7 +543,7 @@
           "FP32 oracle and gradient gates pass before timing"
         ],
         "selected_levels": {
-          "checkpoint_policy": "whole_level",
+          "checkpoint_policy": "gram_only_sac",
           "dx_gemm_backend": "native_sm120_dx_gemm",
           "dy_gemm_backend": "native_sm120_dy_gemm",
           "dy_relu_epilogue_layout": "exact_dy_relu_epilogue_layout",
@@ -491,13 +551,14 @@
           "full_symmetric_qk_sm120": "native_sm120_full_symmetric_qk",
           "qk_backward": "control_tied_qk_vjp"
         },
-        "status": "SPEC_ONLY_NO_EXECUTION"
+        "status": "READY_FOR_EXPLICIT_EXECUTION"
       },
       "role": "L8_screening_arm",
       "row_index": 5
     },
     {
       "arm_id": "G0-06",
+      "foldover": false,
       "generator_bits": {
         "x": 1,
         "y": 1,
@@ -521,6 +582,15 @@
           "dy_relu_epilogue_layout"
         ],
         "allowed_change_class": "execution_representation_only",
+        "champion_mutation": "forbidden",
+        "control_reference": {
+          "canonical_source": "vendor/canonical/icrl_reintegrated_bdh_baseline_v1.py",
+          "canonical_source_sha256": "947f8b33e740adede3e13382f8cb9e8e374d845de75e282bda5feb05c582f624",
+          "champion_branch": "codex/champion/0000-validated-bdh-baseline",
+          "champion_commit": "908b0b1",
+          "checkpoint_policy": "gram_only_sac",
+          "experiment_id": "0000"
+        },
         "forbidden_operations": [
           "architecture or equation change",
           "approximate/quantized operator",
@@ -540,22 +610,22 @@
           {
             "factor": "full_symmetric_qk_sm120",
             "operation": "Change only the attention backend dispatch to a native SM120 full/symmetric QK implementation; retain full T\u00d7T logical scores, strict-exclusive same-document masking, Q=K, shared V, no softmax, and no scale.",
-            "status": "SPEC_ONLY"
+            "status": "READY_FOR_EXPLICIT_EXECUTION"
           },
           {
             "factor": "qk_backward",
             "operation": "Change only the exact tied-QK VJP dispatch; accumulate the query-role and key-role contributions into the single Q gradient without materializing an independent K or changing the VJP.",
-            "status": "SPEC_ONLY"
+            "status": "READY_FOR_EXPLICIT_EXECUTION"
           },
           {
             "factor": "e_gemm",
             "operation": "Change only the E GEMM backend/launch; preserve exact E values, dimensions, layout contract, and FP32 accumulation/master weights.",
-            "status": "SPEC_ONLY"
+            "status": "READY_FOR_EXPLICIT_EXECUTION"
           },
           {
             "factor": "dy_relu_epilogue_layout",
             "operation": "Fuse or change only the Dy\u2192ReLU epilogue/layout while preserving exact ReLU semantics, output layout contract, and the independent oracle tolerance.",
-            "status": "SPEC_ONLY"
+            "status": "READY_FOR_EXPLICIT_EXECUTION"
           }
         ],
         "parent_experiment": "0000",
@@ -570,7 +640,7 @@
           "FP32 oracle and gradient gates pass before timing"
         ],
         "selected_levels": {
-          "checkpoint_policy": "whole_level",
+          "checkpoint_policy": "gram_only_sac",
           "dx_gemm_backend": "control_dx_gemm",
           "dy_gemm_backend": "control_dy_gemm",
           "dy_relu_epilogue_layout": "exact_dy_relu_epilogue_layout",
@@ -578,13 +648,14 @@
           "full_symmetric_qk_sm120": "native_sm120_full_symmetric_qk",
           "qk_backward": "native_tied_qk_vjp"
         },
-        "status": "SPEC_ONLY_NO_EXECUTION"
+        "status": "READY_FOR_EXPLICIT_EXECUTION"
       },
       "role": "L8_screening_arm",
       "row_index": 6
     },
     {
       "arm_id": "G0-07",
+      "foldover": false,
       "generator_bits": {
         "x": 1,
         "y": 1,
@@ -608,6 +679,15 @@
           "checkpoint_policy"
         ],
         "allowed_change_class": "execution_representation_only",
+        "champion_mutation": "forbidden",
+        "control_reference": {
+          "canonical_source": "vendor/canonical/icrl_reintegrated_bdh_baseline_v1.py",
+          "canonical_source_sha256": "947f8b33e740adede3e13382f8cb9e8e374d845de75e282bda5feb05c582f624",
+          "champion_branch": "codex/champion/0000-validated-bdh-baseline",
+          "champion_commit": "908b0b1",
+          "checkpoint_policy": "gram_only_sac",
+          "experiment_id": "0000"
+        },
         "forbidden_operations": [
           "architecture or equation change",
           "approximate/quantized operator",
@@ -627,22 +707,22 @@
           {
             "factor": "full_symmetric_qk_sm120",
             "operation": "Change only the attention backend dispatch to a native SM120 full/symmetric QK implementation; retain full T\u00d7T logical scores, strict-exclusive same-document masking, Q=K, shared V, no softmax, and no scale.",
-            "status": "SPEC_ONLY"
+            "status": "READY_FOR_EXPLICIT_EXECUTION"
           },
           {
             "factor": "qk_backward",
             "operation": "Change only the exact tied-QK VJP dispatch; accumulate the query-role and key-role contributions into the single Q gradient without materializing an independent K or changing the VJP.",
-            "status": "SPEC_ONLY"
+            "status": "READY_FOR_EXPLICIT_EXECUTION"
           },
           {
             "factor": "dx_gemm_backend",
             "operation": "Change only the Dx GEMM backend/launch; preserve dimensions, operand values, logical layout, BF16 operands, and FP32 accumulation/master-weight semantics.",
-            "status": "SPEC_ONLY"
+            "status": "READY_FOR_EXPLICIT_EXECUTION"
           },
           {
             "factor": "checkpoint_policy",
-            "operation": "Change only the checkpoint boundary to whole-level or selective exact projection-only recomputation; do not checkpoint the killed candidate QK-block read path and do not change the forward graph.",
-            "status": "SPEC_ONLY"
+            "operation": "Change only the checkpoint boundary from the exact experiment-0000 Gram-only SAC control to selective exact projection-only recomputation; do not checkpoint the killed candidate QK-block read path and do not change the forward graph.",
+            "status": "READY_FOR_EXPLICIT_EXECUTION"
           }
         ],
         "parent_experiment": "0000",
@@ -665,17 +745,765 @@
           "full_symmetric_qk_sm120": "native_sm120_full_symmetric_qk",
           "qk_backward": "native_tied_qk_vjp"
         },
-        "status": "SPEC_ONLY_NO_EXECUTION"
+        "status": "READY_FOR_EXPLICIT_EXECUTION"
       },
       "role": "L8_screening_arm",
       "row_index": 7
+    },
+    {
+      "arm_id": "G0-F00",
+      "foldover": true,
+      "level_string": "1111111",
+      "levels": {
+        "checkpoint_policy": 1,
+        "dx_gemm_backend": 1,
+        "dy_gemm_backend": 1,
+        "dy_relu_epilogue_layout": 1,
+        "e_gemm": 1,
+        "full_symmetric_qk_sm120": 1,
+        "qk_backward": 1
+      },
+      "patch_spec": {
+        "active_high_factors": [
+          "full_symmetric_qk_sm120",
+          "qk_backward",
+          "dx_gemm_backend",
+          "dy_gemm_backend",
+          "e_gemm",
+          "dy_relu_epilogue_layout",
+          "checkpoint_policy"
+        ],
+        "allowed_change_class": "execution_representation_only",
+        "champion_mutation": "forbidden",
+        "control_reference": {
+          "canonical_source": "vendor/canonical/icrl_reintegrated_bdh_baseline_v1.py",
+          "canonical_source_sha256": "947f8b33e740adede3e13382f8cb9e8e374d845de75e282bda5feb05c582f624",
+          "champion_branch": "codex/champion/0000-validated-bdh-baseline",
+          "champion_commit": "908b0b1",
+          "checkpoint_policy": "gram_only_sac",
+          "experiment_id": "0000"
+        },
+        "forbidden_operations": [
+          "architecture or equation change",
+          "approximate/quantized operator",
+          "blocked-prefix read or [B,T,H,K] native-read branch",
+          "chunked-state/SplitScan branch",
+          "N128 rejected tile configurations",
+          "optimizer, loss, corpus, or checkpoint-file semantics change"
+        ],
+        "measurement": {
+          "benchmark": "B32",
+          "control_latency_ms_approx": 1655.0,
+          "objective": "exact forward+backward latency_ms",
+          "oracle_before_timing": true,
+          "target_latency_ms_approx": 728.0
+        },
+        "operations": [
+          {
+            "factor": "full_symmetric_qk_sm120",
+            "operation": "Change only the attention backend dispatch to a native SM120 full/symmetric QK implementation; retain full T\u00d7T logical scores, strict-exclusive same-document masking, Q=K, shared V, no softmax, and no scale.",
+            "status": "READY_FOR_EXPLICIT_EXECUTION"
+          },
+          {
+            "factor": "qk_backward",
+            "operation": "Change only the exact tied-QK VJP dispatch; accumulate the query-role and key-role contributions into the single Q gradient without materializing an independent K or changing the VJP.",
+            "status": "READY_FOR_EXPLICIT_EXECUTION"
+          },
+          {
+            "factor": "dx_gemm_backend",
+            "operation": "Change only the Dx GEMM backend/launch; preserve dimensions, operand values, logical layout, BF16 operands, and FP32 accumulation/master-weight semantics.",
+            "status": "READY_FOR_EXPLICIT_EXECUTION"
+          },
+          {
+            "factor": "dy_gemm_backend",
+            "operation": "Change only the Dy GEMM backend/launch; preserve exact Dy values and all downstream writer semantics.",
+            "status": "READY_FOR_EXPLICIT_EXECUTION"
+          },
+          {
+            "factor": "e_gemm",
+            "operation": "Change only the E GEMM backend/launch; preserve exact E values, dimensions, layout contract, and FP32 accumulation/master weights.",
+            "status": "READY_FOR_EXPLICIT_EXECUTION"
+          },
+          {
+            "factor": "dy_relu_epilogue_layout",
+            "operation": "Fuse or change only the Dy\u2192ReLU epilogue/layout while preserving exact ReLU semantics, output layout contract, and the independent oracle tolerance.",
+            "status": "READY_FOR_EXPLICIT_EXECUTION"
+          },
+          {
+            "factor": "checkpoint_policy",
+            "operation": "Change only the checkpoint boundary from the exact experiment-0000 Gram-only SAC control to selective exact projection-only recomputation; do not checkpoint the killed candidate QK-block read path and do not change the forward graph.",
+            "status": "READY_FOR_EXPLICIT_EXECUTION"
+          }
+        ],
+        "parent_experiment": "0000",
+        "patch_id": "G0-F00",
+        "required_invariants": [
+          "Arm-A science unchanged",
+          "exact full/symmetric Q=K attention",
+          "strict-exclusive same-document masking and resets",
+          "tied-QK backward",
+          "no softmax and no attention scale",
+          "real frozen corpus and valid-target accounting",
+          "FP32 oracle and gradient gates pass before timing"
+        ],
+        "selected_levels": {
+          "checkpoint_policy": "selective_exact_projection_only",
+          "dx_gemm_backend": "native_sm120_dx_gemm",
+          "dy_gemm_backend": "native_sm120_dy_gemm",
+          "dy_relu_epilogue_layout": "exact_dy_relu_epilogue_layout",
+          "e_gemm": "native_sm120_e_gemm",
+          "full_symmetric_qk_sm120": "native_sm120_full_symmetric_qk",
+          "qk_backward": "native_tied_qk_vjp"
+        },
+        "status": "READY_FOR_EXPLICIT_EXECUTION"
+      },
+      "role": "full_foldover_arm",
+      "row_index": 8,
+      "source_arm_id": "G0-00"
+    },
+    {
+      "arm_id": "G0-F01",
+      "foldover": true,
+      "level_string": "1101000",
+      "levels": {
+        "checkpoint_policy": 0,
+        "dx_gemm_backend": 0,
+        "dy_gemm_backend": 1,
+        "dy_relu_epilogue_layout": 0,
+        "e_gemm": 0,
+        "full_symmetric_qk_sm120": 1,
+        "qk_backward": 1
+      },
+      "patch_spec": {
+        "active_high_factors": [
+          "full_symmetric_qk_sm120",
+          "qk_backward",
+          "dy_gemm_backend"
+        ],
+        "allowed_change_class": "execution_representation_only",
+        "champion_mutation": "forbidden",
+        "control_reference": {
+          "canonical_source": "vendor/canonical/icrl_reintegrated_bdh_baseline_v1.py",
+          "canonical_source_sha256": "947f8b33e740adede3e13382f8cb9e8e374d845de75e282bda5feb05c582f624",
+          "champion_branch": "codex/champion/0000-validated-bdh-baseline",
+          "champion_commit": "908b0b1",
+          "checkpoint_policy": "gram_only_sac",
+          "experiment_id": "0000"
+        },
+        "forbidden_operations": [
+          "architecture or equation change",
+          "approximate/quantized operator",
+          "blocked-prefix read or [B,T,H,K] native-read branch",
+          "chunked-state/SplitScan branch",
+          "N128 rejected tile configurations",
+          "optimizer, loss, corpus, or checkpoint-file semantics change"
+        ],
+        "measurement": {
+          "benchmark": "B32",
+          "control_latency_ms_approx": 1655.0,
+          "objective": "exact forward+backward latency_ms",
+          "oracle_before_timing": true,
+          "target_latency_ms_approx": 728.0
+        },
+        "operations": [
+          {
+            "factor": "full_symmetric_qk_sm120",
+            "operation": "Change only the attention backend dispatch to a native SM120 full/symmetric QK implementation; retain full T\u00d7T logical scores, strict-exclusive same-document masking, Q=K, shared V, no softmax, and no scale.",
+            "status": "READY_FOR_EXPLICIT_EXECUTION"
+          },
+          {
+            "factor": "qk_backward",
+            "operation": "Change only the exact tied-QK VJP dispatch; accumulate the query-role and key-role contributions into the single Q gradient without materializing an independent K or changing the VJP.",
+            "status": "READY_FOR_EXPLICIT_EXECUTION"
+          },
+          {
+            "factor": "dy_gemm_backend",
+            "operation": "Change only the Dy GEMM backend/launch; preserve exact Dy values and all downstream writer semantics.",
+            "status": "READY_FOR_EXPLICIT_EXECUTION"
+          }
+        ],
+        "parent_experiment": "0000",
+        "patch_id": "G0-F01",
+        "required_invariants": [
+          "Arm-A science unchanged",
+          "exact full/symmetric Q=K attention",
+          "strict-exclusive same-document masking and resets",
+          "tied-QK backward",
+          "no softmax and no attention scale",
+          "real frozen corpus and valid-target accounting",
+          "FP32 oracle and gradient gates pass before timing"
+        ],
+        "selected_levels": {
+          "checkpoint_policy": "gram_only_sac",
+          "dx_gemm_backend": "control_dx_gemm",
+          "dy_gemm_backend": "native_sm120_dy_gemm",
+          "dy_relu_epilogue_layout": "materialized_baseline_layout",
+          "e_gemm": "reference_e_gemm",
+          "full_symmetric_qk_sm120": "native_sm120_full_symmetric_qk",
+          "qk_backward": "native_tied_qk_vjp"
+        },
+        "status": "READY_FOR_EXPLICIT_EXECUTION"
+      },
+      "role": "full_foldover_arm",
+      "row_index": 9,
+      "source_arm_id": "G0-01"
+    },
+    {
+      "arm_id": "G0-F02",
+      "foldover": true,
+      "level_string": "1010100",
+      "levels": {
+        "checkpoint_policy": 0,
+        "dx_gemm_backend": 1,
+        "dy_gemm_backend": 0,
+        "dy_relu_epilogue_layout": 0,
+        "e_gemm": 1,
+        "full_symmetric_qk_sm120": 1,
+        "qk_backward": 0
+      },
+      "patch_spec": {
+        "active_high_factors": [
+          "full_symmetric_qk_sm120",
+          "dx_gemm_backend",
+          "e_gemm"
+        ],
+        "allowed_change_class": "execution_representation_only",
+        "champion_mutation": "forbidden",
+        "control_reference": {
+          "canonical_source": "vendor/canonical/icrl_reintegrated_bdh_baseline_v1.py",
+          "canonical_source_sha256": "947f8b33e740adede3e13382f8cb9e8e374d845de75e282bda5feb05c582f624",
+          "champion_branch": "codex/champion/0000-validated-bdh-baseline",
+          "champion_commit": "908b0b1",
+          "checkpoint_policy": "gram_only_sac",
+          "experiment_id": "0000"
+        },
+        "forbidden_operations": [
+          "architecture or equation change",
+          "approximate/quantized operator",
+          "blocked-prefix read or [B,T,H,K] native-read branch",
+          "chunked-state/SplitScan branch",
+          "N128 rejected tile configurations",
+          "optimizer, loss, corpus, or checkpoint-file semantics change"
+        ],
+        "measurement": {
+          "benchmark": "B32",
+          "control_latency_ms_approx": 1655.0,
+          "objective": "exact forward+backward latency_ms",
+          "oracle_before_timing": true,
+          "target_latency_ms_approx": 728.0
+        },
+        "operations": [
+          {
+            "factor": "full_symmetric_qk_sm120",
+            "operation": "Change only the attention backend dispatch to a native SM120 full/symmetric QK implementation; retain full T\u00d7T logical scores, strict-exclusive same-document masking, Q=K, shared V, no softmax, and no scale.",
+            "status": "READY_FOR_EXPLICIT_EXECUTION"
+          },
+          {
+            "factor": "dx_gemm_backend",
+            "operation": "Change only the Dx GEMM backend/launch; preserve dimensions, operand values, logical layout, BF16 operands, and FP32 accumulation/master-weight semantics.",
+            "status": "READY_FOR_EXPLICIT_EXECUTION"
+          },
+          {
+            "factor": "e_gemm",
+            "operation": "Change only the E GEMM backend/launch; preserve exact E values, dimensions, layout contract, and FP32 accumulation/master weights.",
+            "status": "READY_FOR_EXPLICIT_EXECUTION"
+          }
+        ],
+        "parent_experiment": "0000",
+        "patch_id": "G0-F02",
+        "required_invariants": [
+          "Arm-A science unchanged",
+          "exact full/symmetric Q=K attention",
+          "strict-exclusive same-document masking and resets",
+          "tied-QK backward",
+          "no softmax and no attention scale",
+          "real frozen corpus and valid-target accounting",
+          "FP32 oracle and gradient gates pass before timing"
+        ],
+        "selected_levels": {
+          "checkpoint_policy": "gram_only_sac",
+          "dx_gemm_backend": "native_sm120_dx_gemm",
+          "dy_gemm_backend": "control_dy_gemm",
+          "dy_relu_epilogue_layout": "materialized_baseline_layout",
+          "e_gemm": "native_sm120_e_gemm",
+          "full_symmetric_qk_sm120": "native_sm120_full_symmetric_qk",
+          "qk_backward": "control_tied_qk_vjp"
+        },
+        "status": "READY_FOR_EXPLICIT_EXECUTION"
+      },
+      "role": "full_foldover_arm",
+      "row_index": 10,
+      "source_arm_id": "G0-02"
+    },
+    {
+      "arm_id": "G0-F03",
+      "foldover": true,
+      "level_string": "1000011",
+      "levels": {
+        "checkpoint_policy": 1,
+        "dx_gemm_backend": 0,
+        "dy_gemm_backend": 0,
+        "dy_relu_epilogue_layout": 1,
+        "e_gemm": 0,
+        "full_symmetric_qk_sm120": 1,
+        "qk_backward": 0
+      },
+      "patch_spec": {
+        "active_high_factors": [
+          "full_symmetric_qk_sm120",
+          "dy_relu_epilogue_layout",
+          "checkpoint_policy"
+        ],
+        "allowed_change_class": "execution_representation_only",
+        "champion_mutation": "forbidden",
+        "control_reference": {
+          "canonical_source": "vendor/canonical/icrl_reintegrated_bdh_baseline_v1.py",
+          "canonical_source_sha256": "947f8b33e740adede3e13382f8cb9e8e374d845de75e282bda5feb05c582f624",
+          "champion_branch": "codex/champion/0000-validated-bdh-baseline",
+          "champion_commit": "908b0b1",
+          "checkpoint_policy": "gram_only_sac",
+          "experiment_id": "0000"
+        },
+        "forbidden_operations": [
+          "architecture or equation change",
+          "approximate/quantized operator",
+          "blocked-prefix read or [B,T,H,K] native-read branch",
+          "chunked-state/SplitScan branch",
+          "N128 rejected tile configurations",
+          "optimizer, loss, corpus, or checkpoint-file semantics change"
+        ],
+        "measurement": {
+          "benchmark": "B32",
+          "control_latency_ms_approx": 1655.0,
+          "objective": "exact forward+backward latency_ms",
+          "oracle_before_timing": true,
+          "target_latency_ms_approx": 728.0
+        },
+        "operations": [
+          {
+            "factor": "full_symmetric_qk_sm120",
+            "operation": "Change only the attention backend dispatch to a native SM120 full/symmetric QK implementation; retain full T\u00d7T logical scores, strict-exclusive same-document masking, Q=K, shared V, no softmax, and no scale.",
+            "status": "READY_FOR_EXPLICIT_EXECUTION"
+          },
+          {
+            "factor": "dy_relu_epilogue_layout",
+            "operation": "Fuse or change only the Dy\u2192ReLU epilogue/layout while preserving exact ReLU semantics, output layout contract, and the independent oracle tolerance.",
+            "status": "READY_FOR_EXPLICIT_EXECUTION"
+          },
+          {
+            "factor": "checkpoint_policy",
+            "operation": "Change only the checkpoint boundary from the exact experiment-0000 Gram-only SAC control to selective exact projection-only recomputation; do not checkpoint the killed candidate QK-block read path and do not change the forward graph.",
+            "status": "READY_FOR_EXPLICIT_EXECUTION"
+          }
+        ],
+        "parent_experiment": "0000",
+        "patch_id": "G0-F03",
+        "required_invariants": [
+          "Arm-A science unchanged",
+          "exact full/symmetric Q=K attention",
+          "strict-exclusive same-document masking and resets",
+          "tied-QK backward",
+          "no softmax and no attention scale",
+          "real frozen corpus and valid-target accounting",
+          "FP32 oracle and gradient gates pass before timing"
+        ],
+        "selected_levels": {
+          "checkpoint_policy": "selective_exact_projection_only",
+          "dx_gemm_backend": "control_dx_gemm",
+          "dy_gemm_backend": "control_dy_gemm",
+          "dy_relu_epilogue_layout": "exact_dy_relu_epilogue_layout",
+          "e_gemm": "reference_e_gemm",
+          "full_symmetric_qk_sm120": "native_sm120_full_symmetric_qk",
+          "qk_backward": "control_tied_qk_vjp"
+        },
+        "status": "READY_FOR_EXPLICIT_EXECUTION"
+      },
+      "role": "full_foldover_arm",
+      "row_index": 11,
+      "source_arm_id": "G0-03"
+    },
+    {
+      "arm_id": "G0-F04",
+      "foldover": true,
+      "level_string": "0110010",
+      "levels": {
+        "checkpoint_policy": 0,
+        "dx_gemm_backend": 1,
+        "dy_gemm_backend": 0,
+        "dy_relu_epilogue_layout": 1,
+        "e_gemm": 0,
+        "full_symmetric_qk_sm120": 0,
+        "qk_backward": 1
+      },
+      "patch_spec": {
+        "active_high_factors": [
+          "qk_backward",
+          "dx_gemm_backend",
+          "dy_relu_epilogue_layout"
+        ],
+        "allowed_change_class": "execution_representation_only",
+        "champion_mutation": "forbidden",
+        "control_reference": {
+          "canonical_source": "vendor/canonical/icrl_reintegrated_bdh_baseline_v1.py",
+          "canonical_source_sha256": "947f8b33e740adede3e13382f8cb9e8e374d845de75e282bda5feb05c582f624",
+          "champion_branch": "codex/champion/0000-validated-bdh-baseline",
+          "champion_commit": "908b0b1",
+          "checkpoint_policy": "gram_only_sac",
+          "experiment_id": "0000"
+        },
+        "forbidden_operations": [
+          "architecture or equation change",
+          "approximate/quantized operator",
+          "blocked-prefix read or [B,T,H,K] native-read branch",
+          "chunked-state/SplitScan branch",
+          "N128 rejected tile configurations",
+          "optimizer, loss, corpus, or checkpoint-file semantics change"
+        ],
+        "measurement": {
+          "benchmark": "B32",
+          "control_latency_ms_approx": 1655.0,
+          "objective": "exact forward+backward latency_ms",
+          "oracle_before_timing": true,
+          "target_latency_ms_approx": 728.0
+        },
+        "operations": [
+          {
+            "factor": "qk_backward",
+            "operation": "Change only the exact tied-QK VJP dispatch; accumulate the query-role and key-role contributions into the single Q gradient without materializing an independent K or changing the VJP.",
+            "status": "READY_FOR_EXPLICIT_EXECUTION"
+          },
+          {
+            "factor": "dx_gemm_backend",
+            "operation": "Change only the Dx GEMM backend/launch; preserve dimensions, operand values, logical layout, BF16 operands, and FP32 accumulation/master-weight semantics.",
+            "status": "READY_FOR_EXPLICIT_EXECUTION"
+          },
+          {
+            "factor": "dy_relu_epilogue_layout",
+            "operation": "Fuse or change only the Dy\u2192ReLU epilogue/layout while preserving exact ReLU semantics, output layout contract, and the independent oracle tolerance.",
+            "status": "READY_FOR_EXPLICIT_EXECUTION"
+          }
+        ],
+        "parent_experiment": "0000",
+        "patch_id": "G0-F04",
+        "required_invariants": [
+          "Arm-A science unchanged",
+          "exact full/symmetric Q=K attention",
+          "strict-exclusive same-document masking and resets",
+          "tied-QK backward",
+          "no softmax and no attention scale",
+          "real frozen corpus and valid-target accounting",
+          "FP32 oracle and gradient gates pass before timing"
+        ],
+        "selected_levels": {
+          "checkpoint_policy": "gram_only_sac",
+          "dx_gemm_backend": "native_sm120_dx_gemm",
+          "dy_gemm_backend": "control_dy_gemm",
+          "dy_relu_epilogue_layout": "exact_dy_relu_epilogue_layout",
+          "e_gemm": "reference_e_gemm",
+          "full_symmetric_qk_sm120": "control_full_symmetric_qk",
+          "qk_backward": "native_tied_qk_vjp"
+        },
+        "status": "READY_FOR_EXPLICIT_EXECUTION"
+      },
+      "role": "full_foldover_arm",
+      "row_index": 12,
+      "source_arm_id": "G0-04"
+    },
+    {
+      "arm_id": "G0-F05",
+      "foldover": true,
+      "level_string": "0100101",
+      "levels": {
+        "checkpoint_policy": 1,
+        "dx_gemm_backend": 0,
+        "dy_gemm_backend": 0,
+        "dy_relu_epilogue_layout": 0,
+        "e_gemm": 1,
+        "full_symmetric_qk_sm120": 0,
+        "qk_backward": 1
+      },
+      "patch_spec": {
+        "active_high_factors": [
+          "qk_backward",
+          "e_gemm",
+          "checkpoint_policy"
+        ],
+        "allowed_change_class": "execution_representation_only",
+        "champion_mutation": "forbidden",
+        "control_reference": {
+          "canonical_source": "vendor/canonical/icrl_reintegrated_bdh_baseline_v1.py",
+          "canonical_source_sha256": "947f8b33e740adede3e13382f8cb9e8e374d845de75e282bda5feb05c582f624",
+          "champion_branch": "codex/champion/0000-validated-bdh-baseline",
+          "champion_commit": "908b0b1",
+          "checkpoint_policy": "gram_only_sac",
+          "experiment_id": "0000"
+        },
+        "forbidden_operations": [
+          "architecture or equation change",
+          "approximate/quantized operator",
+          "blocked-prefix read or [B,T,H,K] native-read branch",
+          "chunked-state/SplitScan branch",
+          "N128 rejected tile configurations",
+          "optimizer, loss, corpus, or checkpoint-file semantics change"
+        ],
+        "measurement": {
+          "benchmark": "B32",
+          "control_latency_ms_approx": 1655.0,
+          "objective": "exact forward+backward latency_ms",
+          "oracle_before_timing": true,
+          "target_latency_ms_approx": 728.0
+        },
+        "operations": [
+          {
+            "factor": "qk_backward",
+            "operation": "Change only the exact tied-QK VJP dispatch; accumulate the query-role and key-role contributions into the single Q gradient without materializing an independent K or changing the VJP.",
+            "status": "READY_FOR_EXPLICIT_EXECUTION"
+          },
+          {
+            "factor": "e_gemm",
+            "operation": "Change only the E GEMM backend/launch; preserve exact E values, dimensions, layout contract, and FP32 accumulation/master weights.",
+            "status": "READY_FOR_EXPLICIT_EXECUTION"
+          },
+          {
+            "factor": "checkpoint_policy",
+            "operation": "Change only the checkpoint boundary from the exact experiment-0000 Gram-only SAC control to selective exact projection-only recomputation; do not checkpoint the killed candidate QK-block read path and do not change the forward graph.",
+            "status": "READY_FOR_EXPLICIT_EXECUTION"
+          }
+        ],
+        "parent_experiment": "0000",
+        "patch_id": "G0-F05",
+        "required_invariants": [
+          "Arm-A science unchanged",
+          "exact full/symmetric Q=K attention",
+          "strict-exclusive same-document masking and resets",
+          "tied-QK backward",
+          "no softmax and no attention scale",
+          "real frozen corpus and valid-target accounting",
+          "FP32 oracle and gradient gates pass before timing"
+        ],
+        "selected_levels": {
+          "checkpoint_policy": "selective_exact_projection_only",
+          "dx_gemm_backend": "control_dx_gemm",
+          "dy_gemm_backend": "control_dy_gemm",
+          "dy_relu_epilogue_layout": "materialized_baseline_layout",
+          "e_gemm": "native_sm120_e_gemm",
+          "full_symmetric_qk_sm120": "control_full_symmetric_qk",
+          "qk_backward": "native_tied_qk_vjp"
+        },
+        "status": "READY_FOR_EXPLICIT_EXECUTION"
+      },
+      "role": "full_foldover_arm",
+      "row_index": 13,
+      "source_arm_id": "G0-05"
+    },
+    {
+      "arm_id": "G0-F06",
+      "foldover": true,
+      "level_string": "0011001",
+      "levels": {
+        "checkpoint_policy": 1,
+        "dx_gemm_backend": 1,
+        "dy_gemm_backend": 1,
+        "dy_relu_epilogue_layout": 0,
+        "e_gemm": 0,
+        "full_symmetric_qk_sm120": 0,
+        "qk_backward": 0
+      },
+      "patch_spec": {
+        "active_high_factors": [
+          "dx_gemm_backend",
+          "dy_gemm_backend",
+          "checkpoint_policy"
+        ],
+        "allowed_change_class": "execution_representation_only",
+        "champion_mutation": "forbidden",
+        "control_reference": {
+          "canonical_source": "vendor/canonical/icrl_reintegrated_bdh_baseline_v1.py",
+          "canonical_source_sha256": "947f8b33e740adede3e13382f8cb9e8e374d845de75e282bda5feb05c582f624",
+          "champion_branch": "codex/champion/0000-validated-bdh-baseline",
+          "champion_commit": "908b0b1",
+          "checkpoint_policy": "gram_only_sac",
+          "experiment_id": "0000"
+        },
+        "forbidden_operations": [
+          "architecture or equation change",
+          "approximate/quantized operator",
+          "blocked-prefix read or [B,T,H,K] native-read branch",
+          "chunked-state/SplitScan branch",
+          "N128 rejected tile configurations",
+          "optimizer, loss, corpus, or checkpoint-file semantics change"
+        ],
+        "measurement": {
+          "benchmark": "B32",
+          "control_latency_ms_approx": 1655.0,
+          "objective": "exact forward+backward latency_ms",
+          "oracle_before_timing": true,
+          "target_latency_ms_approx": 728.0
+        },
+        "operations": [
+          {
+            "factor": "dx_gemm_backend",
+            "operation": "Change only the Dx GEMM backend/launch; preserve dimensions, operand values, logical layout, BF16 operands, and FP32 accumulation/master-weight semantics.",
+            "status": "READY_FOR_EXPLICIT_EXECUTION"
+          },
+          {
+            "factor": "dy_gemm_backend",
+            "operation": "Change only the Dy GEMM backend/launch; preserve exact Dy values and all downstream writer semantics.",
+            "status": "READY_FOR_EXPLICIT_EXECUTION"
+          },
+          {
+            "factor": "checkpoint_policy",
+            "operation": "Change only the checkpoint boundary from the exact experiment-0000 Gram-only SAC control to selective exact projection-only recomputation; do not checkpoint the killed candidate QK-block read path and do not change the forward graph.",
+            "status": "READY_FOR_EXPLICIT_EXECUTION"
+          }
+        ],
+        "parent_experiment": "0000",
+        "patch_id": "G0-F06",
+        "required_invariants": [
+          "Arm-A science unchanged",
+          "exact full/symmetric Q=K attention",
+          "strict-exclusive same-document masking and resets",
+          "tied-QK backward",
+          "no softmax and no attention scale",
+          "real frozen corpus and valid-target accounting",
+          "FP32 oracle and gradient gates pass before timing"
+        ],
+        "selected_levels": {
+          "checkpoint_policy": "selective_exact_projection_only",
+          "dx_gemm_backend": "native_sm120_dx_gemm",
+          "dy_gemm_backend": "native_sm120_dy_gemm",
+          "dy_relu_epilogue_layout": "materialized_baseline_layout",
+          "e_gemm": "reference_e_gemm",
+          "full_symmetric_qk_sm120": "control_full_symmetric_qk",
+          "qk_backward": "control_tied_qk_vjp"
+        },
+        "status": "READY_FOR_EXPLICIT_EXECUTION"
+      },
+      "role": "full_foldover_arm",
+      "row_index": 14,
+      "source_arm_id": "G0-06"
+    },
+    {
+      "arm_id": "G0-F07",
+      "foldover": true,
+      "level_string": "0001110",
+      "levels": {
+        "checkpoint_policy": 0,
+        "dx_gemm_backend": 0,
+        "dy_gemm_backend": 1,
+        "dy_relu_epilogue_layout": 1,
+        "e_gemm": 1,
+        "full_symmetric_qk_sm120": 0,
+        "qk_backward": 0
+      },
+      "patch_spec": {
+        "active_high_factors": [
+          "dy_gemm_backend",
+          "e_gemm",
+          "dy_relu_epilogue_layout"
+        ],
+        "allowed_change_class": "execution_representation_only",
+        "champion_mutation": "forbidden",
+        "control_reference": {
+          "canonical_source": "vendor/canonical/icrl_reintegrated_bdh_baseline_v1.py",
+          "canonical_source_sha256": "947f8b33e740adede3e13382f8cb9e8e374d845de75e282bda5feb05c582f624",
+          "champion_branch": "codex/champion/0000-validated-bdh-baseline",
+          "champion_commit": "908b0b1",
+          "checkpoint_policy": "gram_only_sac",
+          "experiment_id": "0000"
+        },
+        "forbidden_operations": [
+          "architecture or equation change",
+          "approximate/quantized operator",
+          "blocked-prefix read or [B,T,H,K] native-read branch",
+          "chunked-state/SplitScan branch",
+          "N128 rejected tile configurations",
+          "optimizer, loss, corpus, or checkpoint-file semantics change"
+        ],
+        "measurement": {
+          "benchmark": "B32",
+          "control_latency_ms_approx": 1655.0,
+          "objective": "exact forward+backward latency_ms",
+          "oracle_before_timing": true,
+          "target_latency_ms_approx": 728.0
+        },
+        "operations": [
+          {
+            "factor": "dy_gemm_backend",
+            "operation": "Change only the Dy GEMM backend/launch; preserve exact Dy values and all downstream writer semantics.",
+            "status": "READY_FOR_EXPLICIT_EXECUTION"
+          },
+          {
+            "factor": "e_gemm",
+            "operation": "Change only the E GEMM backend/launch; preserve exact E values, dimensions, layout contract, and FP32 accumulation/master weights.",
+            "status": "READY_FOR_EXPLICIT_EXECUTION"
+          },
+          {
+            "factor": "dy_relu_epilogue_layout",
+            "operation": "Fuse or change only the Dy\u2192ReLU epilogue/layout while preserving exact ReLU semantics, output layout contract, and the independent oracle tolerance.",
+            "status": "READY_FOR_EXPLICIT_EXECUTION"
+          }
+        ],
+        "parent_experiment": "0000",
+        "patch_id": "G0-F07",
+        "required_invariants": [
+          "Arm-A science unchanged",
+          "exact full/symmetric Q=K attention",
+          "strict-exclusive same-document masking and resets",
+          "tied-QK backward",
+          "no softmax and no attention scale",
+          "real frozen corpus and valid-target accounting",
+          "FP32 oracle and gradient gates pass before timing"
+        ],
+        "selected_levels": {
+          "checkpoint_policy": "gram_only_sac",
+          "dx_gemm_backend": "control_dx_gemm",
+          "dy_gemm_backend": "native_sm120_dy_gemm",
+          "dy_relu_epilogue_layout": "exact_dy_relu_epilogue_layout",
+          "e_gemm": "native_sm120_e_gemm",
+          "full_symmetric_qk_sm120": "control_full_symmetric_qk",
+          "qk_backward": "control_tied_qk_vjp"
+        },
+        "status": "READY_FOR_EXPLICIT_EXECUTION"
+      },
+      "role": "full_foldover_arm",
+      "row_index": 15,
+      "source_arm_id": "G0-07"
     }
   ],
   "base_commit": "908b0b1",
   "contract_sha256": "6074310a418ed8af684e66b73fc75e8f2152300ab43ad7cca5f93b550482b800",
   "control_experiment": "0000",
+  "control_reference": {
+    "canonical_source": "vendor/canonical/icrl_reintegrated_bdh_baseline_v1.py",
+    "canonical_source_sha256": "947f8b33e740adede3e13382f8cb9e8e374d845de75e282bda5feb05c582f624",
+    "champion_branch": "codex/champion/0000-validated-bdh-baseline",
+    "champion_commit": "908b0b1",
+    "checkpoint_policy": "gram_only_sac",
+    "control_equivalence": "byte-equivalent canonical source and behavior-equivalent exact Arm-A treatment before any factor is enabled",
+    "experiment_id": "0000",
+    "factor_levels": {
+      "checkpoint_policy": "gram_only_sac",
+      "dx_gemm_backend": "control_dx_gemm",
+      "dy_gemm_backend": "control_dy_gemm",
+      "dy_relu_epilogue_layout": "materialized_baseline_layout",
+      "e_gemm": "reference_e_gemm",
+      "full_symmetric_qk_sm120": "control_full_symmetric_qk",
+      "qk_backward": "control_tied_qk_vjp"
+    }
+  },
+  "control_verification": {
+    "all_factor_low_levels_match_experiment_0000": true,
+    "behavior_equivalent_frozen_arm_a_contract": true,
+    "byte_equivalent_canonical_source": true,
+    "canonical_source_sha256": "947f8b33e740adede3e13382f8cb9e8e374d845de75e282bda5feb05c582f624",
+    "champion_mutation": "forbidden_until_results_analysis",
+    "g0_00_has_no_factor_operations": true,
+    "runtime_oracle_required_before_timing": true,
+    "status": "PASS_STATIC_CONTROL_GATES"
+  },
   "design": {
-    "array": "L8(2^7)",
+    "array": "L8(2^7) + full 8-arm foldover",
     "coding": "0=control, 1=exact execution candidate",
     "factor_order": [
       "full_symmetric_qk_sm120",
@@ -686,6 +1514,7 @@
       "dy_relu_epilogue_layout",
       "checkpoint_policy"
     ],
+    "foldover": "bitwise complement of all seven factor columns",
     "generators": {
       "A": "x",
       "B": "y",
@@ -695,7 +1524,7 @@
       "F": "y xor z",
       "G": "x xor y xor z"
     },
-    "type": "Taguchi-style orthogonal array"
+    "type": "Taguchi-style orthogonal array with full foldover"
   },
   "excluded_killed_branches": [
     "0001 exact [B,T,H,K] wide-Dx plus causal prefix blocks at block 256",
@@ -706,7 +1535,9 @@
     "N128/BM32/W8 neuron tile: shared memory exceeded the hardware limit",
     "dtype-unfixed Triton dress-rehearsal worker that failed before training"
   ],
-  "execution_allowed": false,
+  "execution_allowed": true,
+  "execution_mode": "candidate_worktree_only_gpu_harness",
+  "execution_requires_explicit_flag": true,
   "factors": [
     {
       "killed_levels_excluded": [
@@ -799,7 +1630,7 @@
         "selective_candidate_qk_block_checkpoint"
       ],
       "levels": [
-        "whole_level",
+        "gram_only_sac",
         "selective_exact_projection_only"
       ],
       "name": "checkpoint_policy",
@@ -811,50 +1642,63 @@
       "science_change": false
     }
   ],
+  "foldover": {
+    "additional_arms": 8,
+    "main_effect_two_factor_aliases_resolved": true,
+    "remaining_aliases": "two-factor interactions remain grouped within their original three-term classes",
+    "source_rows": 8,
+    "total_treatment_arms": 16,
+    "type": "full_bitwise_complement"
+  },
   "generation": 0,
   "interaction_aliases": {
-    "checkpoint_policy": [
-      "checkpoint_policy",
-      "full_symmetric_qk_sm120*dy_relu_epilogue_layout",
-      "qk_backward*e_gemm",
-      "dx_gemm_backend*dy_gemm_backend"
-    ],
-    "dx_gemm_backend": [
-      "dx_gemm_backend",
-      "full_symmetric_qk_sm120*e_gemm",
-      "qk_backward*dy_relu_epilogue_layout",
-      "dy_gemm_backend*checkpoint_policy"
-    ],
-    "dy_gemm_backend": [
-      "dy_gemm_backend",
-      "full_symmetric_qk_sm120*qk_backward",
-      "e_gemm*dy_relu_epilogue_layout",
-      "dx_gemm_backend*checkpoint_policy"
-    ],
-    "dy_relu_epilogue_layout": [
-      "dy_relu_epilogue_layout",
-      "qk_backward*dx_gemm_backend",
-      "dy_gemm_backend*e_gemm",
-      "full_symmetric_qk_sm120*checkpoint_policy"
-    ],
-    "e_gemm": [
-      "e_gemm",
-      "full_symmetric_qk_sm120*dx_gemm_backend",
-      "dy_gemm_backend*dy_relu_epilogue_layout",
-      "qk_backward*checkpoint_policy"
-    ],
-    "full_symmetric_qk_sm120": [
-      "full_symmetric_qk_sm120",
-      "qk_backward*dy_gemm_backend",
-      "dx_gemm_backend*e_gemm",
-      "dy_relu_epilogue_layout*checkpoint_policy"
-    ],
-    "qk_backward": [
-      "qk_backward",
-      "full_symmetric_qk_sm120*dy_gemm_backend",
-      "dx_gemm_backend*dy_relu_epilogue_layout",
-      "e_gemm*checkpoint_policy"
-    ]
+    "column_assignment": {
+      "A": "full_symmetric_qk_sm120",
+      "B": "qk_backward",
+      "C": "dx_gemm_backend",
+      "D": "dy_gemm_backend",
+      "E": "e_gemm",
+      "F": "dy_relu_epilogue_layout",
+      "G": "checkpoint_policy"
+    },
+    "main_effects_dealiased_from_two_factor_interactions": true,
+    "remaining_two_factor_interaction_groups": {
+      "A": [
+        "qk_backward*dy_gemm_backend",
+        "dx_gemm_backend*e_gemm",
+        "dy_relu_epilogue_layout*checkpoint_policy"
+      ],
+      "B": [
+        "full_symmetric_qk_sm120*dy_gemm_backend",
+        "dx_gemm_backend*dy_relu_epilogue_layout",
+        "e_gemm*checkpoint_policy"
+      ],
+      "C": [
+        "full_symmetric_qk_sm120*e_gemm",
+        "qk_backward*dy_relu_epilogue_layout",
+        "dy_gemm_backend*checkpoint_policy"
+      ],
+      "D": [
+        "full_symmetric_qk_sm120*qk_backward",
+        "e_gemm*dy_relu_epilogue_layout",
+        "dx_gemm_backend*checkpoint_policy"
+      ],
+      "E": [
+        "full_symmetric_qk_sm120*dx_gemm_backend",
+        "dy_gemm_backend*dy_relu_epilogue_layout",
+        "qk_backward*checkpoint_policy"
+      ],
+      "F": [
+        "qk_backward*dx_gemm_backend",
+        "dy_gemm_backend*e_gemm",
+        "full_symmetric_qk_sm120*checkpoint_policy"
+      ],
+      "G": [
+        "full_symmetric_qk_sm120*dy_relu_epilogue_layout",
+        "qk_backward*e_gemm",
+        "dx_gemm_backend*dy_gemm_backend"
+      ]
+    }
   },
   "next_round_handoff": {
     "interaction_round": "construct a full 2^k factorial over the selected factors; do not infer aliased interactions from L8",
@@ -876,8 +1720,9 @@
       "caution": "selective candidate-QK-block checkpoint from 0001 is excluded",
       "confidence": "low",
       "direction": "ambiguous_latency__positive_memory_headroom",
-      "evidence_basis": "checkpointing is a known memory/runtime tradeoff; prior chunked-state failures are not evidence for this isolated policy",
+      "evidence_basis": "experiment 0000 used exact Gram-only SAC; selective projection-only recomputation is a separate memory/runtime hypothesis; prior chunked-state failures are not evidence for this isolated policy",
       "high_level": "selective_exact_projection_only",
+      "low_level": "gram_only_sac",
       "magnitude_prior": "variable"
     },
     "dx_gemm_backend": {
@@ -964,7 +1809,7 @@
       "within_block_position": 1
     },
     {
-      "arm_id": "G0-02",
+      "arm_id": "G0-F01",
       "block_id": 1,
       "control_interleaved": false,
       "kind": "arm",
@@ -994,7 +1839,7 @@
       "within_block_position": 4
     },
     {
-      "arm_id": "G0-05",
+      "arm_id": "G0-F05",
       "block_id": 1,
       "control_interleaved": false,
       "kind": "arm",
@@ -1004,7 +1849,7 @@
       "within_block_position": 5
     },
     {
-      "arm_id": "G0-06",
+      "arm_id": "G0-F02",
       "block_id": 1,
       "control_interleaved": false,
       "kind": "arm",
@@ -1024,7 +1869,7 @@
       "within_block_position": 7
     },
     {
-      "arm_id": "G0-04",
+      "arm_id": "G0-F03",
       "block_id": 1,
       "control_interleaved": false,
       "kind": "arm",
@@ -1034,7 +1879,7 @@
       "within_block_position": 8
     },
     {
-      "arm_id": "G0-07",
+      "arm_id": "G0-06",
       "block_id": 1,
       "control_interleaved": false,
       "kind": "arm",
@@ -1054,9 +1899,9 @@
       "within_block_position": 10
     },
     {
-      "arm_id": "G0-00",
+      "arm_id": "G0-05",
       "block_id": 1,
-      "control_interleaved": true,
+      "control_interleaved": false,
       "kind": "arm",
       "oracle_required": true,
       "randomization_seed": 20260909,
@@ -1064,7 +1909,7 @@
       "within_block_position": 11
     },
     {
-      "arm_id": "G0-01",
+      "arm_id": "G0-04",
       "block_id": 1,
       "control_interleaved": false,
       "kind": "arm",
@@ -1077,11 +1922,141 @@
       "arm_id": "CONTROL",
       "block_id": 1,
       "control_interleaved": true,
-      "kind": "control_anchor",
+      "kind": "control_interleave",
       "oracle_required": true,
       "randomization_seed": 20260909,
       "run_id": "G0-R13",
       "within_block_position": 13
+    },
+    {
+      "arm_id": "G0-00",
+      "block_id": 1,
+      "control_interleaved": true,
+      "kind": "arm",
+      "oracle_required": true,
+      "randomization_seed": 20260909,
+      "run_id": "G0-R14",
+      "within_block_position": 14
+    },
+    {
+      "arm_id": "G0-07",
+      "block_id": 1,
+      "control_interleaved": false,
+      "kind": "arm",
+      "oracle_required": true,
+      "randomization_seed": 20260909,
+      "run_id": "G0-R15",
+      "within_block_position": 15
+    },
+    {
+      "arm_id": "CONTROL",
+      "block_id": 1,
+      "control_interleaved": true,
+      "kind": "control_interleave",
+      "oracle_required": true,
+      "randomization_seed": 20260909,
+      "run_id": "G0-R16",
+      "within_block_position": 16
+    },
+    {
+      "arm_id": "G0-F06",
+      "block_id": 1,
+      "control_interleaved": false,
+      "kind": "arm",
+      "oracle_required": true,
+      "randomization_seed": 20260909,
+      "run_id": "G0-R17",
+      "within_block_position": 17
+    },
+    {
+      "arm_id": "G0-F00",
+      "block_id": 1,
+      "control_interleaved": false,
+      "kind": "arm",
+      "oracle_required": true,
+      "randomization_seed": 20260909,
+      "run_id": "G0-R18",
+      "within_block_position": 18
+    },
+    {
+      "arm_id": "CONTROL",
+      "block_id": 1,
+      "control_interleaved": true,
+      "kind": "control_interleave",
+      "oracle_required": true,
+      "randomization_seed": 20260909,
+      "run_id": "G0-R19",
+      "within_block_position": 19
+    },
+    {
+      "arm_id": "G0-F04",
+      "block_id": 1,
+      "control_interleaved": false,
+      "kind": "arm",
+      "oracle_required": true,
+      "randomization_seed": 20260909,
+      "run_id": "G0-R20",
+      "within_block_position": 20
+    },
+    {
+      "arm_id": "G0-F07",
+      "block_id": 1,
+      "control_interleaved": false,
+      "kind": "arm",
+      "oracle_required": true,
+      "randomization_seed": 20260909,
+      "run_id": "G0-R21",
+      "within_block_position": 21
+    },
+    {
+      "arm_id": "CONTROL",
+      "block_id": 1,
+      "control_interleaved": true,
+      "kind": "control_interleave",
+      "oracle_required": true,
+      "randomization_seed": 20260909,
+      "run_id": "G0-R22",
+      "within_block_position": 22
+    },
+    {
+      "arm_id": "G0-01",
+      "block_id": 1,
+      "control_interleaved": false,
+      "kind": "arm",
+      "oracle_required": true,
+      "randomization_seed": 20260909,
+      "run_id": "G0-R23",
+      "within_block_position": 23
+    },
+    {
+      "arm_id": "G0-02",
+      "block_id": 1,
+      "control_interleaved": false,
+      "kind": "arm",
+      "oracle_required": true,
+      "randomization_seed": 20260909,
+      "run_id": "G0-R24",
+      "within_block_position": 24
+    },
+    {
+      "arm_id": "CONTROL",
+      "block_id": 1,
+      "control_interleaved": true,
+      "kind": "control_interleave",
+      "oracle_required": true,
+      "randomization_seed": 20260909,
+      "run_id": "G0-R25",
+      "within_block_position": 25
+    },
+    {
+      "arm_id": "CONTROL",
+      "block_id": 1,
+      "control_interleaved": true,
+      "kind": "control_anchor",
+      "oracle_required": true,
+      "randomization_seed": 20260909,
+      "run_id": "G0-R26",
+      "within_block_position": 26
     },
     {
       "arm_id": "CONTROL",
@@ -1090,27 +2065,27 @@
       "kind": "control_anchor",
       "oracle_required": true,
       "randomization_seed": 20260909,
-      "run_id": "G0-R14",
+      "run_id": "G0-R27",
       "within_block_position": 1
     },
     {
-      "arm_id": "G0-07",
+      "arm_id": "G0-F07",
       "block_id": 2,
       "control_interleaved": false,
       "kind": "arm",
       "oracle_required": true,
       "randomization_seed": 20260909,
-      "run_id": "G0-R15",
+      "run_id": "G0-R28",
       "within_block_position": 2
     },
     {
-      "arm_id": "G0-03",
+      "arm_id": "G0-F06",
       "block_id": 2,
       "control_interleaved": false,
       "kind": "arm",
       "oracle_required": true,
       "randomization_seed": 20260909,
-      "run_id": "G0-R16",
+      "run_id": "G0-R29",
       "within_block_position": 3
     },
     {
@@ -1120,17 +2095,17 @@
       "kind": "control_interleave",
       "oracle_required": true,
       "randomization_seed": 20260909,
-      "run_id": "G0-R17",
+      "run_id": "G0-R30",
       "within_block_position": 4
     },
     {
-      "arm_id": "G0-02",
+      "arm_id": "G0-F02",
       "block_id": 2,
       "control_interleaved": false,
       "kind": "arm",
       "oracle_required": true,
       "randomization_seed": 20260909,
-      "run_id": "G0-R18",
+      "run_id": "G0-R31",
       "within_block_position": 5
     },
     {
@@ -1140,7 +2115,7 @@
       "kind": "arm",
       "oracle_required": true,
       "randomization_seed": 20260909,
-      "run_id": "G0-R19",
+      "run_id": "G0-R32",
       "within_block_position": 6
     },
     {
@@ -1150,27 +2125,27 @@
       "kind": "control_interleave",
       "oracle_required": true,
       "randomization_seed": 20260909,
-      "run_id": "G0-R20",
+      "run_id": "G0-R33",
       "within_block_position": 7
     },
     {
-      "arm_id": "G0-00",
-      "block_id": 2,
-      "control_interleaved": true,
-      "kind": "arm",
-      "oracle_required": true,
-      "randomization_seed": 20260909,
-      "run_id": "G0-R21",
-      "within_block_position": 8
-    },
-    {
-      "arm_id": "G0-06",
+      "arm_id": "G0-F03",
       "block_id": 2,
       "control_interleaved": false,
       "kind": "arm",
       "oracle_required": true,
       "randomization_seed": 20260909,
-      "run_id": "G0-R22",
+      "run_id": "G0-R34",
+      "within_block_position": 8
+    },
+    {
+      "arm_id": "G0-F01",
+      "block_id": 2,
+      "control_interleaved": false,
+      "kind": "arm",
+      "oracle_required": true,
+      "randomization_seed": 20260909,
+      "run_id": "G0-R35",
       "within_block_position": 9
     },
     {
@@ -1180,8 +2155,68 @@
       "kind": "control_interleave",
       "oracle_required": true,
       "randomization_seed": 20260909,
-      "run_id": "G0-R23",
+      "run_id": "G0-R36",
       "within_block_position": 10
+    },
+    {
+      "arm_id": "G0-F00",
+      "block_id": 2,
+      "control_interleaved": false,
+      "kind": "arm",
+      "oracle_required": true,
+      "randomization_seed": 20260909,
+      "run_id": "G0-R37",
+      "within_block_position": 11
+    },
+    {
+      "arm_id": "G0-00",
+      "block_id": 2,
+      "control_interleaved": true,
+      "kind": "arm",
+      "oracle_required": true,
+      "randomization_seed": 20260909,
+      "run_id": "G0-R38",
+      "within_block_position": 12
+    },
+    {
+      "arm_id": "CONTROL",
+      "block_id": 2,
+      "control_interleaved": true,
+      "kind": "control_interleave",
+      "oracle_required": true,
+      "randomization_seed": 20260909,
+      "run_id": "G0-R39",
+      "within_block_position": 13
+    },
+    {
+      "arm_id": "G0-F05",
+      "block_id": 2,
+      "control_interleaved": false,
+      "kind": "arm",
+      "oracle_required": true,
+      "randomization_seed": 20260909,
+      "run_id": "G0-R40",
+      "within_block_position": 14
+    },
+    {
+      "arm_id": "G0-06",
+      "block_id": 2,
+      "control_interleaved": false,
+      "kind": "arm",
+      "oracle_required": true,
+      "randomization_seed": 20260909,
+      "run_id": "G0-R41",
+      "within_block_position": 15
+    },
+    {
+      "arm_id": "CONTROL",
+      "block_id": 2,
+      "control_interleaved": true,
+      "kind": "control_interleave",
+      "oracle_required": true,
+      "randomization_seed": 20260909,
+      "run_id": "G0-R42",
+      "within_block_position": 16
     },
     {
       "arm_id": "G0-05",
@@ -1190,8 +2225,8 @@
       "kind": "arm",
       "oracle_required": true,
       "randomization_seed": 20260909,
-      "run_id": "G0-R24",
-      "within_block_position": 11
+      "run_id": "G0-R43",
+      "within_block_position": 17
     },
     {
       "arm_id": "G0-04",
@@ -1200,8 +2235,78 @@
       "kind": "arm",
       "oracle_required": true,
       "randomization_seed": 20260909,
-      "run_id": "G0-R25",
-      "within_block_position": 12
+      "run_id": "G0-R44",
+      "within_block_position": 18
+    },
+    {
+      "arm_id": "CONTROL",
+      "block_id": 2,
+      "control_interleaved": true,
+      "kind": "control_interleave",
+      "oracle_required": true,
+      "randomization_seed": 20260909,
+      "run_id": "G0-R45",
+      "within_block_position": 19
+    },
+    {
+      "arm_id": "G0-02",
+      "block_id": 2,
+      "control_interleaved": false,
+      "kind": "arm",
+      "oracle_required": true,
+      "randomization_seed": 20260909,
+      "run_id": "G0-R46",
+      "within_block_position": 20
+    },
+    {
+      "arm_id": "G0-03",
+      "block_id": 2,
+      "control_interleaved": false,
+      "kind": "arm",
+      "oracle_required": true,
+      "randomization_seed": 20260909,
+      "run_id": "G0-R47",
+      "within_block_position": 21
+    },
+    {
+      "arm_id": "CONTROL",
+      "block_id": 2,
+      "control_interleaved": true,
+      "kind": "control_interleave",
+      "oracle_required": true,
+      "randomization_seed": 20260909,
+      "run_id": "G0-R48",
+      "within_block_position": 22
+    },
+    {
+      "arm_id": "G0-07",
+      "block_id": 2,
+      "control_interleaved": false,
+      "kind": "arm",
+      "oracle_required": true,
+      "randomization_seed": 20260909,
+      "run_id": "G0-R49",
+      "within_block_position": 23
+    },
+    {
+      "arm_id": "G0-F04",
+      "block_id": 2,
+      "control_interleaved": false,
+      "kind": "arm",
+      "oracle_required": true,
+      "randomization_seed": 20260909,
+      "run_id": "G0-R50",
+      "within_block_position": 24
+    },
+    {
+      "arm_id": "CONTROL",
+      "block_id": 2,
+      "control_interleaved": true,
+      "kind": "control_interleave",
+      "oracle_required": true,
+      "randomization_seed": 20260909,
+      "run_id": "G0-R51",
+      "within_block_position": 25
     },
     {
       "arm_id": "CONTROL",
@@ -1210,11 +2315,11 @@
       "kind": "control_anchor",
       "oracle_required": true,
       "randomization_seed": 20260909,
-      "run_id": "G0-R26",
-      "within_block_position": 13
+      "run_id": "G0-R52",
+      "within_block_position": 26
     }
   ],
   "schema_version": 1,
   "science_delta_allowed": false,
-  "status": "SPEC_ONLY_NO_EXECUTION"
+  "status": "READY_FOR_EXPLICIT_EXECUTION"
 }

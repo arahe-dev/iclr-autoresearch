@@ -9,7 +9,7 @@
     "plan_id": {"type": "string", "const": "G0-L8-SM120-EXACT-B32"},
     "source_commit": {"type": "string"},
     "run_id": {"type": "string", "pattern": "^G0-R[0-9]{2}$"},
-    "arm_id": {"type": "string", "pattern": "^(G0-[0-9]{2}|CONTROL)$"},
+    "arm_id": {"type": "string", "pattern": "^(G0-(?:[0-9]{2}|F[0-9]{2})|CONTROL)$"},
     "block_id": {"type": "integer", "minimum": 1},
     "within_block_position": {"type": "integer", "minimum": 1},
     "oracle": {

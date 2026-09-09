@@ -14,7 +14,7 @@ def main() -> None:
     (output / "matrix.json").write_text(json.dumps(plan, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     (output / "run_order.json").write_text(json.dumps({"plan_id": plan["plan_id"], "runs": plan["run_order"]}, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     (output / "arm_patch_specs.json").write_text(json.dumps({"plan_id": plan["plan_id"], "arms": [{"arm_id": a["arm_id"], "patch_spec": a["patch_spec"]} for a in plan["arms"]]}, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    print(json.dumps({"status": "GENERATED_SPEC_ONLY", "plan_id": plan["plan_id"], "output": str(output), "arms": len(plan["arms"]), "runs": len(plan["run_order"]), "execution_allowed": plan["execution_allowed"]}, indent=2))
+    print(json.dumps({"status": "GENERATED_READY_FOR_EXPLICIT_EXECUTION", "plan_id": plan["plan_id"], "output": str(output), "arms": len(plan["arms"]), "runs": len(plan["run_order"]), "execution_allowed": plan["execution_allowed"], "champion_immutable": True}, indent=2))
 
 
 if __name__ == "__main__":

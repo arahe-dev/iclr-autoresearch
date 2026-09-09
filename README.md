@@ -16,9 +16,9 @@ Experiment `0001` records the exact `[B,T,H,K]` plus causal-prefix candidate: FP
 
 ## Generation-0 screen
 
-[configs/generation_0_screening.json](configs/generation_0_screening.json) and [plans/generation0/matrix.json](plans/generation0/matrix.json) define the L8(2^7) Taguchi-style screen for exact full/symmetric QK, tied-QK backward, separate Dx/Dy/E native SM120 GEMMs, Dy+ReLU epilogues/layout, and checkpoint policy. The objective is exact B32 F+B latency: approximately 1,655 ms for the current control and approximately 728 ms at 90k real tok/s. The plan has 26 randomized/interleaved-control run slots across two blocks, with oracle correctness required before timing.
+[configs/generation_0_screening.json](configs/generation_0_screening.json) and [plans/generation0/matrix.json](plans/generation0/matrix.json) define the L8(2^7) Taguchi-style screen plus its 8-arm full foldover for exact full/symmetric QK, tied-QK backward, separate Dx/Dy/E native SM120 GEMMs, Dy+ReLU epilogues/layout, and checkpoint policy. The Generation-0 low checkpoint level is the exact experiment-0000 `gram_only_sac` policy. The objective is exact B32 F+B latency: approximately 1,655 ms for the current control and approximately 728 ms at 90k real tok/s. The plan has 16 unique treatment arms and 52 randomized/interleaved-control run slots across two blocks, with oracle correctness required before timing.
 
-All rows are marked `SPEC_ONLY_NO_EXECUTION`; `--execute` is fail-closed. The plan excludes every branch already killed in the evidence ledger and contains no approximate operator or architecture change. See [run_order.json](plans/generation0/run_order.json), [arm_patch_specs.json](plans/generation0/arm_patch_specs.json), and [plans/generation0/README.md](plans/generation0/README.md).
+The plan is `READY_FOR_EXPLICIT_EXECUTION`, but execution remains fail-closed: `scripts/run_generation0.py --execute` requires a separate candidate worktree, a user-supplied GPU command, an SM120 GPU, and oracle-passing JSON output. The harness refuses all champion branches and never promotes or mutates a champion. The plan excludes every branch already killed in the evidence ledger and contains no approximate operator or architecture change. See [run_order.json](plans/generation0/run_order.json), [arm_patch_specs.json](plans/generation0/arm_patch_specs.json), and [plans/generation0/README.md](plans/generation0/README.md).
 
 The reusable infrastructure lives under `src/icrl_autoresearch/`:
 
@@ -28,8 +28,9 @@ The reusable infrastructure lives under `src/icrl_autoresearch/`:
 - `doe.py`: Generation-0 plan generation without model execution.
 - `decisions.py`: declared keep/revert gates, including the 1.10x read gate and 90k target.
 - `git_ops.py`: candidate/champion branch naming and explicit promotion plans.
-- `generation0.py`: L8 matrix, predicted effects, interaction aliases, randomized run order, and per-arm patch specs.
+- `generation0.py`: L8 plus full-foldover matrix, control verification, predicted effects, interaction aliases, randomized run order, and per-arm patch specs.
 - `results.py`: append-only oracle-gated JSONL result writer.
+- `gpu_harness.py`: explicit SM120 candidate-worktree execution adapter; champion mutation is refused.
 
 ## Safe checks
 
@@ -40,6 +41,15 @@ python scripts/benchmark.py
 python scripts/run_doe.py
 python scripts/decide.py experiments/0001_native_read_reverted/report.json
 python scripts/generate_generation0.py
+python scripts/run_generation0.py
 ```
 
-The first command is the repository integrity check. No CUDA runtime is needed for these checks; CUDA benchmarks, profiling, and champion changes are intentionally not launched by this scaffold.
+The first command is the repository integrity check. The plan-only commands do not launch CUDA. To execute, supply a separate candidate worktree and command, for example:
+
+```powershell
+python scripts/run_generation0.py --execute `
+  --candidate-root C:\path\to\candidate-worktree `
+  --command-template "python candidate_runner.py --run-id {run_id} --arm-id {arm_id}"
+```
+
+The command must emit one oracle-passing result JSON object per slot. The harness appends validated records to `results/generation0.jsonl`; it never modifies the champion branch.

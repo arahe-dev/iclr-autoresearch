@@ -16,32 +16,36 @@ def load_generation0(path: Path = DEFAULT_CONFIG) -> dict[str, Any]:
 
 def screening_plan(config: dict[str, Any] | None = None) -> dict[str, Any]:
     cfg = config or load_generation0()
-    if cfg.get("science_delta_allowed") is not False or cfg.get("execution_allowed") is not False:
-        raise ValueError("Generation-0 plan must be execution-disabled and science-frozen")
+    if cfg.get("science_delta_allowed") is not False:
+        raise ValueError("Generation-0 plan must remain science-frozen")
+    if cfg.get("execution_allowed") is not True or cfg.get("execution_requires_explicit_flag") is not True:
+        raise ValueError("Generation-0 execution must be explicitly enabled and explicitly gated")
     rows = []
     for row in cfg.get("screening_rows", []):
         item = dict(row)
-        item["status"] = "PLANNED_NO_EXECUTION"
+        item["status"] = "READY_FOR_EXPLICIT_EXECUTION"
         item["science_delta"] = False
         item["requires_exact_oracle"] = True
         rows.append(item)
     return {
         "schema_version": 1,
         "generation": 0,
-        "status": "PLANNED_NO_EXECUTION",
+        "status": "READY_FOR_EXPLICIT_EXECUTION",
         "baseline_experiment": cfg["baseline_experiment"],
         "design": cfg["design"],
         "science_delta_allowed": False,
+        "execution_allowed": True,
+        "execution_requires_explicit_flag": True,
         "factors": cfg["factors"],
         "rows": rows,
     }
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Emit the frozen Generation-0 screening design")
+    parser = argparse.ArgumentParser(description="Emit the compatibility Generation-0 screening summary")
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
     parser.add_argument("--output", type=Path)
-    parser.add_argument("--execute", action="store_true", help="always rejected in the infrastructure-only scaffold")
+    parser.add_argument("--execute", action="store_true", help="rejected here; use the GPU harness for explicit candidate execution")
     args = parser.parse_args()
     if args.execute:
         raise SystemExit("Generation-0 execution is disabled: this scaffold does not run new model changes.")

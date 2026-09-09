@@ -8,7 +8,7 @@ from typing import Any
 
 from .contract import REPO_ROOT, assert_science_unchanged, contract_sha256, load_contract, source_sha256
 from .decisions import evaluate_report
-from .generation0 import build_plan
+from .generation0 import assert_control_treatment, build_plan
 
 
 def read_json(path: Path) -> dict[str, Any]:
@@ -51,8 +51,14 @@ def validate_repo(root: Path = REPO_ROOT) -> dict[str, Any]:
         raise ValueError(f"unexpected 0001 decision: {reverted_decision}")
 
     doe = read_json(root / "configs/generation_0_screening.json")
-    if doe.get("generation") != 0 or doe.get("science_delta_allowed") is not False or doe.get("execution_allowed") is not False:
-        raise ValueError("Generation-0 screening is not fail-closed")
+    if (
+        doe.get("generation") != 0
+        or doe.get("science_delta_allowed") is not False
+        or doe.get("execution_allowed") is not True
+        or doe.get("execution_requires_explicit_flag") is not True
+        or doe.get("execution_mode") != "candidate_worktree_only_gpu_harness"
+    ):
+        raise ValueError("Generation-0 screening is not explicitly gated and candidate-only")
     evidence = validate_jsonl(root / "evidence/history.jsonl")
     experiments = validate_jsonl(root / "experiments/history.jsonl")
     if not any(row.get("evidence_id") == "0001-native-read-reverted-20260909" for row in evidence):
@@ -61,9 +67,10 @@ def validate_repo(root: Path = REPO_ROOT) -> dict[str, Any]:
         raise ValueError("experiment 0000 is missing from history")
 
     plan = build_plan()
-    if plan["base_commit"] != "908b0b1" or plan["execution_allowed"] is not False:
-        raise ValueError("Generation-0 plan is not anchored/fail-closed")
-    if len(plan["arms"]) != 8 or len(plan["run_order"]) != 26:
+    assert_control_treatment(plan)
+    if plan["base_commit"] != "908b0b1" or plan["execution_allowed"] is not True or plan["execution_requires_explicit_flag"] is not True:
+        raise ValueError("Generation-0 plan is not anchored and explicitly gated")
+    if len(plan["arms"]) != 16 or len(plan["run_order"]) != 52:
         raise ValueError("unexpected Generation-0 matrix or run-order size")
     if any("blocked" in json.dumps(arm["patch_spec"]).lower() for arm in plan["arms"]):
         # The word is allowed only in the forbidden-operation explanation; no
@@ -73,7 +80,13 @@ def validate_repo(root: Path = REPO_ROOT) -> dict[str, Any]:
             if "blocked" in selected or "prefix" in selected or "chunked" in selected:
                 raise ValueError(f"killed branch leaked into selected arm {arm['arm_id']}")
     result_manifest = read_json(root / "results/generation0_manifest.json")
-    if result_manifest.get("status") != "NO_RESULTS_YET" or result_manifest.get("champion_modified") is not False:
+    if (
+        result_manifest.get("status") != "NO_RESULTS_YET"
+        or result_manifest.get("execution_allowed") is not True
+        or result_manifest.get("candidate_worktree_only") is not True
+        or result_manifest.get("champion_modified") is not False
+        or result_manifest.get("champion_immutable_until_analysis") is not True
+    ):
         raise ValueError("Generation-0 result manifest must remain empty and champion-safe")
 
     return {
