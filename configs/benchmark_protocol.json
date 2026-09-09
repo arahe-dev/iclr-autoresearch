@@ -17,6 +17,15 @@
       "measurement": "two microbatches plus backward, optimizer step, and synchronization"
     }
   },
+  "generation0_screening_objective": {
+    "benchmark": "B32",
+    "objective": "exact forward+backward wall-clock latency",
+    "control_latency_ms_approx": 1655.0,
+    "target_latency_ms_approx": 728.0,
+    "target_real_tok_s": 90000.0,
+    "latency_definition": "65536 real input tokens / synchronized B32 forward+backward wall time",
+    "provenance": "screening prior supplied in task context; not a new measurement"
+  },
   "correctness_before_timing": [
     "independent FP32/FP64 oracle",
     "exact strict-exclusive causal mask",
@@ -38,4 +47,3 @@
     "do not run new model changes from the Generation-0 scaffold"
   ]
 }
-

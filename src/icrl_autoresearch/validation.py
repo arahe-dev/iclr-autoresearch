@@ -8,6 +8,7 @@ from typing import Any
 
 from .contract import REPO_ROOT, assert_science_unchanged, contract_sha256, load_contract, source_sha256
 from .decisions import evaluate_report
+from .generation0 import build_plan
 
 
 def read_json(path: Path) -> dict[str, Any]:
@@ -59,6 +60,22 @@ def validate_repo(root: Path = REPO_ROOT) -> dict[str, Any]:
     if not any(row.get("experiment_id") == "0000" for row in experiments):
         raise ValueError("experiment 0000 is missing from history")
 
+    plan = build_plan()
+    if plan["base_commit"] != "908b0b1" or plan["execution_allowed"] is not False:
+        raise ValueError("Generation-0 plan is not anchored/fail-closed")
+    if len(plan["arms"]) != 8 or len(plan["run_order"]) != 26:
+        raise ValueError("unexpected Generation-0 matrix or run-order size")
+    if any("blocked" in json.dumps(arm["patch_spec"]).lower() for arm in plan["arms"]):
+        # The word is allowed only in the forbidden-operation explanation; no
+        # selected factor level may be a blocked/killed branch.
+        for arm in plan["arms"]:
+            selected = json.dumps(arm["patch_spec"]["selected_levels"]).lower()
+            if "blocked" in selected or "prefix" in selected or "chunked" in selected:
+                raise ValueError(f"killed branch leaked into selected arm {arm['arm_id']}")
+    result_manifest = read_json(root / "results/generation0_manifest.json")
+    if result_manifest.get("status") != "NO_RESULTS_YET" or result_manifest.get("champion_modified") is not False:
+        raise ValueError("Generation-0 result manifest must remain empty and champion-safe")
+
     return {
         "status": "PASS",
         "contract_sha256": contract_sha256(contract),
@@ -68,6 +85,9 @@ def validate_repo(root: Path = REPO_ROOT) -> dict[str, Any]:
         "evidence_records": len(evidence),
         "experiment_records": len(experiments),
         "generation0_execution": doe["execution_allowed"],
+        "generation0_arms": len(plan["arms"]),
+        "generation0_run_slots": len(plan["run_order"]),
+        "generation0_results": result_manifest["status"],
     }
 
 
@@ -80,4 +100,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

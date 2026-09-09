@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "plan_id": "G0-L8-SM120-EXACT-B32",
+  "status": "NO_RESULTS_YET",
+  "ledger": "results/generation0.jsonl",
+  "append_only": true,
+  "duplicate_run_ids_allowed": false,
+  "oracle_required_before_timing": true,
+  "champion_modified": false
+}

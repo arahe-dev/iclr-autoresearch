@@ -2,40 +2,79 @@
   "schema_version": 1,
   "generation": 0,
   "status": "PLANNED_NO_EXECUTION",
-  "purpose": "One-factor screening plan around exact execution representations only",
+  "purpose": "Taguchi-style L8 screening plan around exact execution representations only",
   "baseline_experiment": "0000",
   "science_delta_allowed": false,
   "execution_allowed": false,
-  "design": "one-factor-at-a-time anchored to 0000; no cross-factor model variants are run by this scaffold",
+  "design": "L8(2^7) orthogonal array with 0000 control anchor; randomized/interleaved replicated blocks; no cross-factor model variants are run by this scaffold",
+  "objective": {
+    "benchmark": "B32 exact F+B",
+    "control_latency_ms_approx": 1655.0,
+    "target_latency_ms_approx": 728.0,
+    "target_real_tok_s": 90000.0,
+    "oracle_before_timing": true
+  },
+  "randomization": {
+    "seed": 20260909,
+    "blocks": 2,
+    "replicates_per_arm": 2,
+    "control_interleave": "anchor before each block, after every two candidate slots, plus block-end anchor and randomized control row G0-00",
+    "thermal_drift_covariate": "block_id and within-block position"
+  },
+  "excluded_killed_branches": [
+    "0001 exact [B,T,H,K] wide-Dx plus causal prefix blocks at block 256",
+    "compiled chunked-state schedule that OOMed at the measured shape",
+    "compiler-visible SplitScan/cumsum chunked-state schedule that failed Inductor codegen",
+    "N128/BM16/W4 neuron tile: shared memory exceeded the hardware limit",
+    "N128/BM32/W4 neuron tile: shared memory exceeded the hardware limit",
+    "N128/BM32/W8 neuron tile: shared memory exceeded the hardware limit",
+    "dtype-unfixed Triton dress-rehearsal worker that failed before training"
+  ],
+  "factor_order": [
+    "full_symmetric_qk_sm120",
+    "qk_backward",
+    "dx_gemm_backend",
+    "dy_gemm_backend",
+    "e_gemm",
+    "dy_relu_epilogue_layout",
+    "checkpoint_policy"
+  ],
   "factors": [
     {
-      "name": "attention_representation",
-      "question": "Can an exact strict-lower same-document Q=K schedule reduce paid attention work?",
+      "name": "full_symmetric_qk_sm120",
+      "question": "Can a native SM120 full/symmetric QK path reduce exact attention latency?",
       "levels": [
-        "control_full_strict_lower_same_document",
-        "exact_blocked_strict_lower_same_document"
+        "control_full_symmetric_qk",
+        "native_sm120_full_symmetric_qk"
       ],
-      "operator_class": "exact",
+      "operator_class": "exact_execution_backend",
       "science_change": false,
-      "prior_evidence": ["0001"],
-      "default_action": "do_not_rerun_until_explicitly_authorized"
+      "prior_evidence": ["hist-diagnostic-v4-attention-20260905"],
+      "killed_levels_excluded": ["blocked_prefix_read", "[B,T,H,K] causal prefix blocks"]
     },
     {
       "name": "qk_backward",
       "question": "Does the exact tied-QK backward path avoid duplicate Q/K work without changing the VJP?",
-      "levels": ["tied_qk_exact_vjp"],
-      "operator_class": "exact",
+      "levels": ["control_tied_qk_vjp", "native_tied_qk_vjp"],
+      "operator_class": "exact_execution_backend",
       "science_change": false,
-      "invariant": true,
       "prior_evidence": ["hist-cell1-neuron-tiles-20260905", "hist-diagnostic-v4-attention-20260905"]
     },
     {
-      "name": "sm120_gemm_backend",
-      "question": "Can native SM120 GEMMs improve the exact projection path?",
-      "levels": ["reference_gemm_control", "native_sm120_gemm"],
+      "name": "dx_gemm_backend",
+      "question": "Can a native SM120 Dx GEMM improve the exact input projection?",
+      "levels": ["control_dx_gemm", "native_sm120_dx_gemm"],
       "operator_class": "exact_execution_backend",
       "science_change": false,
-      "prior_evidence": ["hist-cell1-neuron-tiles-20260905"]
+      "prior_evidence": ["hist-cell1-neuron-tiles-20260905", "hist-diagnostic-v4-attention-20260905"]
+    },
+    {
+      "name": "dy_gemm_backend",
+      "question": "Can a native SM120 Dy GEMM improve the exact read/write projection?",
+      "levels": ["control_dy_gemm", "native_sm120_dy_gemm"],
+      "operator_class": "exact_execution_backend",
+      "science_change": false,
+      "prior_evidence": ["hist-cell1-neuron-tiles-20260905", "hist-diagnostic-v4-attention-20260905"]
     },
     {
       "name": "dy_relu_epilogue_layout",
@@ -51,15 +90,16 @@
       "levels": ["reference_e_gemm", "native_sm120_e_gemm"],
       "operator_class": "exact_execution_backend",
       "science_change": false,
-      "prior_evidence": ["hist-cell1-neuron-tiles-20260905"]
+      "prior_evidence": ["hist-cell1-neuron-tiles-20260905", "hist-diagnostic-v4-attention-20260905"]
     },
     {
       "name": "checkpoint_policy",
       "question": "Which exact recomputation boundary lowers memory without changing the training graph?",
-      "levels": ["whole_level", "selective_exact_projection_or_qk_blocks"],
+      "levels": ["whole_level", "selective_exact_projection_only"],
       "operator_class": "exact_training_schedule",
       "science_change": false,
-      "prior_evidence": ["0001", "hist-temporal-loom-chunked-oom-20260908"]
+      "prior_evidence": ["hist-temporal-loom-chunked-oom-20260908"],
+      "killed_levels_excluded": ["selective_candidate_qk_block_checkpoint"]
     }
   ],
   "gates": {
@@ -72,12 +112,19 @@
     "memory_regression_allowed": false
   },
   "screening_rows": [
-    {"row_id": "G0-00", "role": "baseline_anchor", "factors": "all baseline/control levels"},
-    {"row_id": "G0-01", "role": "single_factor", "factor": "attention_representation"},
-    {"row_id": "G0-02", "role": "single_factor", "factor": "sm120_gemm_backend"},
-    {"row_id": "G0-03", "role": "single_factor", "factor": "dy_relu_epilogue_layout"},
-    {"row_id": "G0-04", "role": "single_factor", "factor": "e_gemm"},
-    {"row_id": "G0-05", "role": "single_factor", "factor": "checkpoint_policy"},
-    {"row_id": "G0-06", "role": "invariant_audit", "factor": "qk_backward"}
-  ]
+    {"row_id": "G0-00", "role": "baseline_anchor", "levels": "0000000"},
+    {"row_id": "G0-01", "role": "L8_arm", "levels": "0010111"},
+    {"row_id": "G0-02", "role": "L8_arm", "levels": "0101011"},
+    {"row_id": "G0-03", "role": "L8_arm", "levels": "0111100"},
+    {"row_id": "G0-04", "role": "L8_arm", "levels": "1001101"},
+    {"row_id": "G0-05", "role": "L8_arm", "levels": "1011010"},
+    {"row_id": "G0-06", "role": "L8_arm", "levels": "1100110"},
+    {"row_id": "G0-07", "role": "L8_arm", "levels": "1110001"}
+  ],
+  "analysis": {
+    "primary_model": "B32_latency_ms ~ main_effects + block_id + within_block_position",
+    "effect_coding": "-1 control / +1 exact execution candidate",
+    "interaction_policy": "treat L8 aliases as unresolved; promote only to a full factorial round",
+    "promotion_to_full_factorial": "top factors must pass oracle, no memory regression, and have stable sign across randomized blocks"
+  }
 }

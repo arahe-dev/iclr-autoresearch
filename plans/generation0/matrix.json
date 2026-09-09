@@ -1,0 +1,1220 @@
+{
+  "arms": [
+    {
+      "arm_id": "G0-00",
+      "generator_bits": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "level_string": "0000000",
+      "levels": {
+        "checkpoint_policy": 0,
+        "dx_gemm_backend": 0,
+        "dy_gemm_backend": 0,
+        "dy_relu_epilogue_layout": 0,
+        "e_gemm": 0,
+        "full_symmetric_qk_sm120": 0,
+        "qk_backward": 0
+      },
+      "patch_spec": {
+        "active_high_factors": [],
+        "allowed_change_class": "execution_representation_only",
+        "forbidden_operations": [
+          "architecture or equation change",
+          "approximate/quantized operator",
+          "blocked-prefix read or [B,T,H,K] native-read branch",
+          "chunked-state/SplitScan branch",
+          "N128 rejected tile configurations",
+          "optimizer, loss, corpus, or checkpoint-file semantics change"
+        ],
+        "measurement": {
+          "benchmark": "B32",
+          "control_latency_ms_approx": 1655.0,
+          "objective": "exact forward+backward latency_ms",
+          "oracle_before_timing": true,
+          "target_latency_ms_approx": 728.0
+        },
+        "operations": [],
+        "parent_experiment": "0000",
+        "patch_id": "G0-00",
+        "required_invariants": [
+          "Arm-A science unchanged",
+          "exact full/symmetric Q=K attention",
+          "strict-exclusive same-document masking and resets",
+          "tied-QK backward",
+          "no softmax and no attention scale",
+          "real frozen corpus and valid-target accounting",
+          "FP32 oracle and gradient gates pass before timing"
+        ],
+        "selected_levels": {
+          "checkpoint_policy": "whole_level",
+          "dx_gemm_backend": "control_dx_gemm",
+          "dy_gemm_backend": "control_dy_gemm",
+          "dy_relu_epilogue_layout": "materialized_baseline_layout",
+          "e_gemm": "reference_e_gemm",
+          "full_symmetric_qk_sm120": "control_full_symmetric_qk",
+          "qk_backward": "control_tied_qk_vjp"
+        },
+        "status": "SPEC_ONLY_NO_EXECUTION"
+      },
+      "role": "baseline_control",
+      "row_index": 0
+    },
+    {
+      "arm_id": "G0-01",
+      "generator_bits": {
+        "x": 0,
+        "y": 0,
+        "z": 1
+      },
+      "level_string": "0010111",
+      "levels": {
+        "checkpoint_policy": 1,
+        "dx_gemm_backend": 1,
+        "dy_gemm_backend": 0,
+        "dy_relu_epilogue_layout": 1,
+        "e_gemm": 1,
+        "full_symmetric_qk_sm120": 0,
+        "qk_backward": 0
+      },
+      "patch_spec": {
+        "active_high_factors": [
+          "dx_gemm_backend",
+          "e_gemm",
+          "dy_relu_epilogue_layout",
+          "checkpoint_policy"
+        ],
+        "allowed_change_class": "execution_representation_only",
+        "forbidden_operations": [
+          "architecture or equation change",
+          "approximate/quantized operator",
+          "blocked-prefix read or [B,T,H,K] native-read branch",
+          "chunked-state/SplitScan branch",
+          "N128 rejected tile configurations",
+          "optimizer, loss, corpus, or checkpoint-file semantics change"
+        ],
+        "measurement": {
+          "benchmark": "B32",
+          "control_latency_ms_approx": 1655.0,
+          "objective": "exact forward+backward latency_ms",
+          "oracle_before_timing": true,
+          "target_latency_ms_approx": 728.0
+        },
+        "operations": [
+          {
+            "factor": "dx_gemm_backend",
+            "operation": "Change only the Dx GEMM backend/launch; preserve dimensions, operand values, logical layout, BF16 operands, and FP32 accumulation/master-weight semantics.",
+            "status": "SPEC_ONLY"
+          },
+          {
+            "factor": "e_gemm",
+            "operation": "Change only the E GEMM backend/launch; preserve exact E values, dimensions, layout contract, and FP32 accumulation/master weights.",
+            "status": "SPEC_ONLY"
+          },
+          {
+            "factor": "dy_relu_epilogue_layout",
+            "operation": "Fuse or change only the Dy\u2192ReLU epilogue/layout while preserving exact ReLU semantics, output layout contract, and the independent oracle tolerance.",
+            "status": "SPEC_ONLY"
+          },
+          {
+            "factor": "checkpoint_policy",
+            "operation": "Change only the checkpoint boundary to whole-level or selective exact projection-only recomputation; do not checkpoint the killed candidate QK-block read path and do not change the forward graph.",
+            "status": "SPEC_ONLY"
+          }
+        ],
+        "parent_experiment": "0000",
+        "patch_id": "G0-01",
+        "required_invariants": [
+          "Arm-A science unchanged",
+          "exact full/symmetric Q=K attention",
+          "strict-exclusive same-document masking and resets",
+          "tied-QK backward",
+          "no softmax and no attention scale",
+          "real frozen corpus and valid-target accounting",
+          "FP32 oracle and gradient gates pass before timing"
+        ],
+        "selected_levels": {
+          "checkpoint_policy": "selective_exact_projection_only",
+          "dx_gemm_backend": "native_sm120_dx_gemm",
+          "dy_gemm_backend": "control_dy_gemm",
+          "dy_relu_epilogue_layout": "exact_dy_relu_epilogue_layout",
+          "e_gemm": "native_sm120_e_gemm",
+          "full_symmetric_qk_sm120": "control_full_symmetric_qk",
+          "qk_backward": "control_tied_qk_vjp"
+        },
+        "status": "SPEC_ONLY_NO_EXECUTION"
+      },
+      "role": "L8_screening_arm",
+      "row_index": 1
+    },
+    {
+      "arm_id": "G0-02",
+      "generator_bits": {
+        "x": 0,
+        "y": 1,
+        "z": 0
+      },
+      "level_string": "0101011",
+      "levels": {
+        "checkpoint_policy": 1,
+        "dx_gemm_backend": 0,
+        "dy_gemm_backend": 1,
+        "dy_relu_epilogue_layout": 1,
+        "e_gemm": 0,
+        "full_symmetric_qk_sm120": 0,
+        "qk_backward": 1
+      },
+      "patch_spec": {
+        "active_high_factors": [
+          "qk_backward",
+          "dy_gemm_backend",
+          "dy_relu_epilogue_layout",
+          "checkpoint_policy"
+        ],
+        "allowed_change_class": "execution_representation_only",
+        "forbidden_operations": [
+          "architecture or equation change",
+          "approximate/quantized operator",
+          "blocked-prefix read or [B,T,H,K] native-read branch",
+          "chunked-state/SplitScan branch",
+          "N128 rejected tile configurations",
+          "optimizer, loss, corpus, or checkpoint-file semantics change"
+        ],
+        "measurement": {
+          "benchmark": "B32",
+          "control_latency_ms_approx": 1655.0,
+          "objective": "exact forward+backward latency_ms",
+          "oracle_before_timing": true,
+          "target_latency_ms_approx": 728.0
+        },
+        "operations": [
+          {
+            "factor": "qk_backward",
+            "operation": "Change only the exact tied-QK VJP dispatch; accumulate the query-role and key-role contributions into the single Q gradient without materializing an independent K or changing the VJP.",
+            "status": "SPEC_ONLY"
+          },
+          {
+            "factor": "dy_gemm_backend",
+            "operation": "Change only the Dy GEMM backend/launch; preserve exact Dy values and all downstream writer semantics.",
+            "status": "SPEC_ONLY"
+          },
+          {
+            "factor": "dy_relu_epilogue_layout",
+            "operation": "Fuse or change only the Dy\u2192ReLU epilogue/layout while preserving exact ReLU semantics, output layout contract, and the independent oracle tolerance.",
+            "status": "SPEC_ONLY"
+          },
+          {
+            "factor": "checkpoint_policy",
+            "operation": "Change only the checkpoint boundary to whole-level or selective exact projection-only recomputation; do not checkpoint the killed candidate QK-block read path and do not change the forward graph.",
+            "status": "SPEC_ONLY"
+          }
+        ],
+        "parent_experiment": "0000",
+        "patch_id": "G0-02",
+        "required_invariants": [
+          "Arm-A science unchanged",
+          "exact full/symmetric Q=K attention",
+          "strict-exclusive same-document masking and resets",
+          "tied-QK backward",
+          "no softmax and no attention scale",
+          "real frozen corpus and valid-target accounting",
+          "FP32 oracle and gradient gates pass before timing"
+        ],
+        "selected_levels": {
+          "checkpoint_policy": "selective_exact_projection_only",
+          "dx_gemm_backend": "control_dx_gemm",
+          "dy_gemm_backend": "native_sm120_dy_gemm",
+          "dy_relu_epilogue_layout": "exact_dy_relu_epilogue_layout",
+          "e_gemm": "reference_e_gemm",
+          "full_symmetric_qk_sm120": "control_full_symmetric_qk",
+          "qk_backward": "native_tied_qk_vjp"
+        },
+        "status": "SPEC_ONLY_NO_EXECUTION"
+      },
+      "role": "L8_screening_arm",
+      "row_index": 2
+    },
+    {
+      "arm_id": "G0-03",
+      "generator_bits": {
+        "x": 0,
+        "y": 1,
+        "z": 1
+      },
+      "level_string": "0111100",
+      "levels": {
+        "checkpoint_policy": 0,
+        "dx_gemm_backend": 1,
+        "dy_gemm_backend": 1,
+        "dy_relu_epilogue_layout": 0,
+        "e_gemm": 1,
+        "full_symmetric_qk_sm120": 0,
+        "qk_backward": 1
+      },
+      "patch_spec": {
+        "active_high_factors": [
+          "qk_backward",
+          "dx_gemm_backend",
+          "dy_gemm_backend",
+          "e_gemm"
+        ],
+        "allowed_change_class": "execution_representation_only",
+        "forbidden_operations": [
+          "architecture or equation change",
+          "approximate/quantized operator",
+          "blocked-prefix read or [B,T,H,K] native-read branch",
+          "chunked-state/SplitScan branch",
+          "N128 rejected tile configurations",
+          "optimizer, loss, corpus, or checkpoint-file semantics change"
+        ],
+        "measurement": {
+          "benchmark": "B32",
+          "control_latency_ms_approx": 1655.0,
+          "objective": "exact forward+backward latency_ms",
+          "oracle_before_timing": true,
+          "target_latency_ms_approx": 728.0
+        },
+        "operations": [
+          {
+            "factor": "qk_backward",
+            "operation": "Change only the exact tied-QK VJP dispatch; accumulate the query-role and key-role contributions into the single Q gradient without materializing an independent K or changing the VJP.",
+            "status": "SPEC_ONLY"
+          },
+          {
+            "factor": "dx_gemm_backend",
+            "operation": "Change only the Dx GEMM backend/launch; preserve dimensions, operand values, logical layout, BF16 operands, and FP32 accumulation/master-weight semantics.",
+            "status": "SPEC_ONLY"
+          },
+          {
+            "factor": "dy_gemm_backend",
+            "operation": "Change only the Dy GEMM backend/launch; preserve exact Dy values and all downstream writer semantics.",
+            "status": "SPEC_ONLY"
+          },
+          {
+            "factor": "e_gemm",
+            "operation": "Change only the E GEMM backend/launch; preserve exact E values, dimensions, layout contract, and FP32 accumulation/master weights.",
+            "status": "SPEC_ONLY"
+          }
+        ],
+        "parent_experiment": "0000",
+        "patch_id": "G0-03",
+        "required_invariants": [
+          "Arm-A science unchanged",
+          "exact full/symmetric Q=K attention",
+          "strict-exclusive same-document masking and resets",
+          "tied-QK backward",
+          "no softmax and no attention scale",
+          "real frozen corpus and valid-target accounting",
+          "FP32 oracle and gradient gates pass before timing"
+        ],
+        "selected_levels": {
+          "checkpoint_policy": "whole_level",
+          "dx_gemm_backend": "native_sm120_dx_gemm",
+          "dy_gemm_backend": "native_sm120_dy_gemm",
+          "dy_relu_epilogue_layout": "materialized_baseline_layout",
+          "e_gemm": "native_sm120_e_gemm",
+          "full_symmetric_qk_sm120": "control_full_symmetric_qk",
+          "qk_backward": "native_tied_qk_vjp"
+        },
+        "status": "SPEC_ONLY_NO_EXECUTION"
+      },
+      "role": "L8_screening_arm",
+      "row_index": 3
+    },
+    {
+      "arm_id": "G0-04",
+      "generator_bits": {
+        "x": 1,
+        "y": 0,
+        "z": 0
+      },
+      "level_string": "1001101",
+      "levels": {
+        "checkpoint_policy": 1,
+        "dx_gemm_backend": 0,
+        "dy_gemm_backend": 1,
+        "dy_relu_epilogue_layout": 0,
+        "e_gemm": 1,
+        "full_symmetric_qk_sm120": 1,
+        "qk_backward": 0
+      },
+      "patch_spec": {
+        "active_high_factors": [
+          "full_symmetric_qk_sm120",
+          "dy_gemm_backend",
+          "e_gemm",
+          "checkpoint_policy"
+        ],
+        "allowed_change_class": "execution_representation_only",
+        "forbidden_operations": [
+          "architecture or equation change",
+          "approximate/quantized operator",
+          "blocked-prefix read or [B,T,H,K] native-read branch",
+          "chunked-state/SplitScan branch",
+          "N128 rejected tile configurations",
+          "optimizer, loss, corpus, or checkpoint-file semantics change"
+        ],
+        "measurement": {
+          "benchmark": "B32",
+          "control_latency_ms_approx": 1655.0,
+          "objective": "exact forward+backward latency_ms",
+          "oracle_before_timing": true,
+          "target_latency_ms_approx": 728.0
+        },
+        "operations": [
+          {
+            "factor": "full_symmetric_qk_sm120",
+            "operation": "Change only the attention backend dispatch to a native SM120 full/symmetric QK implementation; retain full T\u00d7T logical scores, strict-exclusive same-document masking, Q=K, shared V, no softmax, and no scale.",
+            "status": "SPEC_ONLY"
+          },
+          {
+            "factor": "dy_gemm_backend",
+            "operation": "Change only the Dy GEMM backend/launch; preserve exact Dy values and all downstream writer semantics.",
+            "status": "SPEC_ONLY"
+          },
+          {
+            "factor": "e_gemm",
+            "operation": "Change only the E GEMM backend/launch; preserve exact E values, dimensions, layout contract, and FP32 accumulation/master weights.",
+            "status": "SPEC_ONLY"
+          },
+          {
+            "factor": "checkpoint_policy",
+            "operation": "Change only the checkpoint boundary to whole-level or selective exact projection-only recomputation; do not checkpoint the killed candidate QK-block read path and do not change the forward graph.",
+            "status": "SPEC_ONLY"
+          }
+        ],
+        "parent_experiment": "0000",
+        "patch_id": "G0-04",
+        "required_invariants": [
+          "Arm-A science unchanged",
+          "exact full/symmetric Q=K attention",
+          "strict-exclusive same-document masking and resets",
+          "tied-QK backward",
+          "no softmax and no attention scale",
+          "real frozen corpus and valid-target accounting",
+          "FP32 oracle and gradient gates pass before timing"
+        ],
+        "selected_levels": {
+          "checkpoint_policy": "selective_exact_projection_only",
+          "dx_gemm_backend": "control_dx_gemm",
+          "dy_gemm_backend": "native_sm120_dy_gemm",
+          "dy_relu_epilogue_layout": "materialized_baseline_layout",
+          "e_gemm": "native_sm120_e_gemm",
+          "full_symmetric_qk_sm120": "native_sm120_full_symmetric_qk",
+          "qk_backward": "control_tied_qk_vjp"
+        },
+        "status": "SPEC_ONLY_NO_EXECUTION"
+      },
+      "role": "L8_screening_arm",
+      "row_index": 4
+    },
+    {
+      "arm_id": "G0-05",
+      "generator_bits": {
+        "x": 1,
+        "y": 0,
+        "z": 1
+      },
+      "level_string": "1011010",
+      "levels": {
+        "checkpoint_policy": 0,
+        "dx_gemm_backend": 1,
+        "dy_gemm_backend": 1,
+        "dy_relu_epilogue_layout": 1,
+        "e_gemm": 0,
+        "full_symmetric_qk_sm120": 1,
+        "qk_backward": 0
+      },
+      "patch_spec": {
+        "active_high_factors": [
+          "full_symmetric_qk_sm120",
+          "dx_gemm_backend",
+          "dy_gemm_backend",
+          "dy_relu_epilogue_layout"
+        ],
+        "allowed_change_class": "execution_representation_only",
+        "forbidden_operations": [
+          "architecture or equation change",
+          "approximate/quantized operator",
+          "blocked-prefix read or [B,T,H,K] native-read branch",
+          "chunked-state/SplitScan branch",
+          "N128 rejected tile configurations",
+          "optimizer, loss, corpus, or checkpoint-file semantics change"
+        ],
+        "measurement": {
+          "benchmark": "B32",
+          "control_latency_ms_approx": 1655.0,
+          "objective": "exact forward+backward latency_ms",
+          "oracle_before_timing": true,
+          "target_latency_ms_approx": 728.0
+        },
+        "operations": [
+          {
+            "factor": "full_symmetric_qk_sm120",
+            "operation": "Change only the attention backend dispatch to a native SM120 full/symmetric QK implementation; retain full T\u00d7T logical scores, strict-exclusive same-document masking, Q=K, shared V, no softmax, and no scale.",
+            "status": "SPEC_ONLY"
+          },
+          {
+            "factor": "dx_gemm_backend",
+            "operation": "Change only the Dx GEMM backend/launch; preserve dimensions, operand values, logical layout, BF16 operands, and FP32 accumulation/master-weight semantics.",
+            "status": "SPEC_ONLY"
+          },
+          {
+            "factor": "dy_gemm_backend",
+            "operation": "Change only the Dy GEMM backend/launch; preserve exact Dy values and all downstream writer semantics.",
+            "status": "SPEC_ONLY"
+          },
+          {
+            "factor": "dy_relu_epilogue_layout",
+            "operation": "Fuse or change only the Dy\u2192ReLU epilogue/layout while preserving exact ReLU semantics, output layout contract, and the independent oracle tolerance.",
+            "status": "SPEC_ONLY"
+          }
+        ],
+        "parent_experiment": "0000",
+        "patch_id": "G0-05",
+        "required_invariants": [
+          "Arm-A science unchanged",
+          "exact full/symmetric Q=K attention",
+          "strict-exclusive same-document masking and resets",
+          "tied-QK backward",
+          "no softmax and no attention scale",
+          "real frozen corpus and valid-target accounting",
+          "FP32 oracle and gradient gates pass before timing"
+        ],
+        "selected_levels": {
+          "checkpoint_policy": "whole_level",
+          "dx_gemm_backend": "native_sm120_dx_gemm",
+          "dy_gemm_backend": "native_sm120_dy_gemm",
+          "dy_relu_epilogue_layout": "exact_dy_relu_epilogue_layout",
+          "e_gemm": "reference_e_gemm",
+          "full_symmetric_qk_sm120": "native_sm120_full_symmetric_qk",
+          "qk_backward": "control_tied_qk_vjp"
+        },
+        "status": "SPEC_ONLY_NO_EXECUTION"
+      },
+      "role": "L8_screening_arm",
+      "row_index": 5
+    },
+    {
+      "arm_id": "G0-06",
+      "generator_bits": {
+        "x": 1,
+        "y": 1,
+        "z": 0
+      },
+      "level_string": "1100110",
+      "levels": {
+        "checkpoint_policy": 0,
+        "dx_gemm_backend": 0,
+        "dy_gemm_backend": 0,
+        "dy_relu_epilogue_layout": 1,
+        "e_gemm": 1,
+        "full_symmetric_qk_sm120": 1,
+        "qk_backward": 1
+      },
+      "patch_spec": {
+        "active_high_factors": [
+          "full_symmetric_qk_sm120",
+          "qk_backward",
+          "e_gemm",
+          "dy_relu_epilogue_layout"
+        ],
+        "allowed_change_class": "execution_representation_only",
+        "forbidden_operations": [
+          "architecture or equation change",
+          "approximate/quantized operator",
+          "blocked-prefix read or [B,T,H,K] native-read branch",
+          "chunked-state/SplitScan branch",
+          "N128 rejected tile configurations",
+          "optimizer, loss, corpus, or checkpoint-file semantics change"
+        ],
+        "measurement": {
+          "benchmark": "B32",
+          "control_latency_ms_approx": 1655.0,
+          "objective": "exact forward+backward latency_ms",
+          "oracle_before_timing": true,
+          "target_latency_ms_approx": 728.0
+        },
+        "operations": [
+          {
+            "factor": "full_symmetric_qk_sm120",
+            "operation": "Change only the attention backend dispatch to a native SM120 full/symmetric QK implementation; retain full T\u00d7T logical scores, strict-exclusive same-document masking, Q=K, shared V, no softmax, and no scale.",
+            "status": "SPEC_ONLY"
+          },
+          {
+            "factor": "qk_backward",
+            "operation": "Change only the exact tied-QK VJP dispatch; accumulate the query-role and key-role contributions into the single Q gradient without materializing an independent K or changing the VJP.",
+            "status": "SPEC_ONLY"
+          },
+          {
+            "factor": "e_gemm",
+            "operation": "Change only the E GEMM backend/launch; preserve exact E values, dimensions, layout contract, and FP32 accumulation/master weights.",
+            "status": "SPEC_ONLY"
+          },
+          {
+            "factor": "dy_relu_epilogue_layout",
+            "operation": "Fuse or change only the Dy\u2192ReLU epilogue/layout while preserving exact ReLU semantics, output layout contract, and the independent oracle tolerance.",
+            "status": "SPEC_ONLY"
+          }
+        ],
+        "parent_experiment": "0000",
+        "patch_id": "G0-06",
+        "required_invariants": [
+          "Arm-A science unchanged",
+          "exact full/symmetric Q=K attention",
+          "strict-exclusive same-document masking and resets",
+          "tied-QK backward",
+          "no softmax and no attention scale",
+          "real frozen corpus and valid-target accounting",
+          "FP32 oracle and gradient gates pass before timing"
+        ],
+        "selected_levels": {
+          "checkpoint_policy": "whole_level",
+          "dx_gemm_backend": "control_dx_gemm",
+          "dy_gemm_backend": "control_dy_gemm",
+          "dy_relu_epilogue_layout": "exact_dy_relu_epilogue_layout",
+          "e_gemm": "native_sm120_e_gemm",
+          "full_symmetric_qk_sm120": "native_sm120_full_symmetric_qk",
+          "qk_backward": "native_tied_qk_vjp"
+        },
+        "status": "SPEC_ONLY_NO_EXECUTION"
+      },
+      "role": "L8_screening_arm",
+      "row_index": 6
+    },
+    {
+      "arm_id": "G0-07",
+      "generator_bits": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "level_string": "1110001",
+      "levels": {
+        "checkpoint_policy": 1,
+        "dx_gemm_backend": 1,
+        "dy_gemm_backend": 0,
+        "dy_relu_epilogue_layout": 0,
+        "e_gemm": 0,
+        "full_symmetric_qk_sm120": 1,
+        "qk_backward": 1
+      },
+      "patch_spec": {
+        "active_high_factors": [
+          "full_symmetric_qk_sm120",
+          "qk_backward",
+          "dx_gemm_backend",
+          "checkpoint_policy"
+        ],
+        "allowed_change_class": "execution_representation_only",
+        "forbidden_operations": [
+          "architecture or equation change",
+          "approximate/quantized operator",
+          "blocked-prefix read or [B,T,H,K] native-read branch",
+          "chunked-state/SplitScan branch",
+          "N128 rejected tile configurations",
+          "optimizer, loss, corpus, or checkpoint-file semantics change"
+        ],
+        "measurement": {
+          "benchmark": "B32",
+          "control_latency_ms_approx": 1655.0,
+          "objective": "exact forward+backward latency_ms",
+          "oracle_before_timing": true,
+          "target_latency_ms_approx": 728.0
+        },
+        "operations": [
+          {
+            "factor": "full_symmetric_qk_sm120",
+            "operation": "Change only the attention backend dispatch to a native SM120 full/symmetric QK implementation; retain full T\u00d7T logical scores, strict-exclusive same-document masking, Q=K, shared V, no softmax, and no scale.",
+            "status": "SPEC_ONLY"
+          },
+          {
+            "factor": "qk_backward",
+            "operation": "Change only the exact tied-QK VJP dispatch; accumulate the query-role and key-role contributions into the single Q gradient without materializing an independent K or changing the VJP.",
+            "status": "SPEC_ONLY"
+          },
+          {
+            "factor": "dx_gemm_backend",
+            "operation": "Change only the Dx GEMM backend/launch; preserve dimensions, operand values, logical layout, BF16 operands, and FP32 accumulation/master-weight semantics.",
+            "status": "SPEC_ONLY"
+          },
+          {
+            "factor": "checkpoint_policy",
+            "operation": "Change only the checkpoint boundary to whole-level or selective exact projection-only recomputation; do not checkpoint the killed candidate QK-block read path and do not change the forward graph.",
+            "status": "SPEC_ONLY"
+          }
+        ],
+        "parent_experiment": "0000",
+        "patch_id": "G0-07",
+        "required_invariants": [
+          "Arm-A science unchanged",
+          "exact full/symmetric Q=K attention",
+          "strict-exclusive same-document masking and resets",
+          "tied-QK backward",
+          "no softmax and no attention scale",
+          "real frozen corpus and valid-target accounting",
+          "FP32 oracle and gradient gates pass before timing"
+        ],
+        "selected_levels": {
+          "checkpoint_policy": "selective_exact_projection_only",
+          "dx_gemm_backend": "native_sm120_dx_gemm",
+          "dy_gemm_backend": "control_dy_gemm",
+          "dy_relu_epilogue_layout": "materialized_baseline_layout",
+          "e_gemm": "reference_e_gemm",
+          "full_symmetric_qk_sm120": "native_sm120_full_symmetric_qk",
+          "qk_backward": "native_tied_qk_vjp"
+        },
+        "status": "SPEC_ONLY_NO_EXECUTION"
+      },
+      "role": "L8_screening_arm",
+      "row_index": 7
+    }
+  ],
+  "base_commit": "908b0b1",
+  "contract_sha256": "6074310a418ed8af684e66b73fc75e8f2152300ab43ad7cca5f93b550482b800",
+  "control_experiment": "0000",
+  "design": {
+    "array": "L8(2^7)",
+    "coding": "0=control, 1=exact execution candidate",
+    "factor_order": [
+      "full_symmetric_qk_sm120",
+      "qk_backward",
+      "dx_gemm_backend",
+      "dy_gemm_backend",
+      "e_gemm",
+      "dy_relu_epilogue_layout",
+      "checkpoint_policy"
+    ],
+    "generators": {
+      "A": "x",
+      "B": "y",
+      "C": "z",
+      "D": "x xor y",
+      "E": "x xor z",
+      "F": "y xor z",
+      "G": "x xor y xor z"
+    },
+    "type": "Taguchi-style orthogonal array"
+  },
+  "excluded_killed_branches": [
+    "0001 exact [B,T,H,K] wide-Dx plus causal prefix blocks at block 256",
+    "compiled chunked-state schedule that OOMed at the measured shape",
+    "compiler-visible SplitScan/cumsum chunked-state schedule that failed Inductor codegen",
+    "N128/BM16/W4 neuron tile: shared memory exceeded the hardware limit",
+    "N128/BM32/W4 neuron tile: shared memory exceeded the hardware limit",
+    "N128/BM32/W8 neuron tile: shared memory exceeded the hardware limit",
+    "dtype-unfixed Triton dress-rehearsal worker that failed before training"
+  ],
+  "execution_allowed": false,
+  "factors": [
+    {
+      "killed_levels_excluded": [
+        "blocked_prefix_read",
+        "[B,T,H,K] causal prefix blocks"
+      ],
+      "levels": [
+        "control_full_symmetric_qk",
+        "native_sm120_full_symmetric_qk"
+      ],
+      "name": "full_symmetric_qk_sm120",
+      "operator_class": "exact_execution_backend",
+      "prior_evidence": [
+        "hist-diagnostic-v4-attention-20260905"
+      ],
+      "question": "Can a native SM120 full/symmetric QK path reduce exact attention latency?",
+      "science_change": false
+    },
+    {
+      "levels": [
+        "control_tied_qk_vjp",
+        "native_tied_qk_vjp"
+      ],
+      "name": "qk_backward",
+      "operator_class": "exact_execution_backend",
+      "prior_evidence": [
+        "hist-cell1-neuron-tiles-20260905",
+        "hist-diagnostic-v4-attention-20260905"
+      ],
+      "question": "Does the exact tied-QK backward path avoid duplicate Q/K work without changing the VJP?",
+      "science_change": false
+    },
+    {
+      "levels": [
+        "control_dx_gemm",
+        "native_sm120_dx_gemm"
+      ],
+      "name": "dx_gemm_backend",
+      "operator_class": "exact_execution_backend",
+      "prior_evidence": [
+        "hist-cell1-neuron-tiles-20260905",
+        "hist-diagnostic-v4-attention-20260905"
+      ],
+      "question": "Can a native SM120 Dx GEMM improve the exact input projection?",
+      "science_change": false
+    },
+    {
+      "levels": [
+        "control_dy_gemm",
+        "native_sm120_dy_gemm"
+      ],
+      "name": "dy_gemm_backend",
+      "operator_class": "exact_execution_backend",
+      "prior_evidence": [
+        "hist-cell1-neuron-tiles-20260905",
+        "hist-diagnostic-v4-attention-20260905"
+      ],
+      "question": "Can a native SM120 Dy GEMM improve the exact read/write projection?",
+      "science_change": false
+    },
+    {
+      "levels": [
+        "materialized_baseline_layout",
+        "exact_dy_relu_epilogue_layout"
+      ],
+      "name": "dy_relu_epilogue_layout",
+      "operator_class": "exact_execution_backend",
+      "prior_evidence": [
+        "hist-diagnostic-v4-attention-20260905"
+      ],
+      "question": "Can exact Dy + ReLU work stay in a GEMM epilogue/layout without changing values?",
+      "science_change": false
+    },
+    {
+      "levels": [
+        "reference_e_gemm",
+        "native_sm120_e_gemm"
+      ],
+      "name": "e_gemm",
+      "operator_class": "exact_execution_backend",
+      "prior_evidence": [
+        "hist-cell1-neuron-tiles-20260905",
+        "hist-diagnostic-v4-attention-20260905"
+      ],
+      "question": "Can the exact E projection use a faster native SM120 GEMM path?",
+      "science_change": false
+    },
+    {
+      "killed_levels_excluded": [
+        "selective_candidate_qk_block_checkpoint"
+      ],
+      "levels": [
+        "whole_level",
+        "selective_exact_projection_only"
+      ],
+      "name": "checkpoint_policy",
+      "operator_class": "exact_training_schedule",
+      "prior_evidence": [
+        "hist-temporal-loom-chunked-oom-20260908"
+      ],
+      "question": "Which exact recomputation boundary lowers memory without changing the training graph?",
+      "science_change": false
+    }
+  ],
+  "generation": 0,
+  "interaction_aliases": {
+    "checkpoint_policy": [
+      "checkpoint_policy",
+      "full_symmetric_qk_sm120*dy_relu_epilogue_layout",
+      "qk_backward*e_gemm",
+      "dx_gemm_backend*dy_gemm_backend"
+    ],
+    "dx_gemm_backend": [
+      "dx_gemm_backend",
+      "full_symmetric_qk_sm120*e_gemm",
+      "qk_backward*dy_relu_epilogue_layout",
+      "dy_gemm_backend*checkpoint_policy"
+    ],
+    "dy_gemm_backend": [
+      "dy_gemm_backend",
+      "full_symmetric_qk_sm120*qk_backward",
+      "e_gemm*dy_relu_epilogue_layout",
+      "dx_gemm_backend*checkpoint_policy"
+    ],
+    "dy_relu_epilogue_layout": [
+      "dy_relu_epilogue_layout",
+      "qk_backward*dx_gemm_backend",
+      "dy_gemm_backend*e_gemm",
+      "full_symmetric_qk_sm120*checkpoint_policy"
+    ],
+    "e_gemm": [
+      "e_gemm",
+      "full_symmetric_qk_sm120*dx_gemm_backend",
+      "dy_gemm_backend*dy_relu_epilogue_layout",
+      "qk_backward*checkpoint_policy"
+    ],
+    "full_symmetric_qk_sm120": [
+      "full_symmetric_qk_sm120",
+      "qk_backward*dy_gemm_backend",
+      "dx_gemm_backend*e_gemm",
+      "dy_relu_epilogue_layout*checkpoint_policy"
+    ],
+    "qk_backward": [
+      "qk_backward",
+      "full_symmetric_qk_sm120*dy_gemm_backend",
+      "dx_gemm_backend*dy_relu_epilogue_layout",
+      "e_gemm*checkpoint_policy"
+    ]
+  },
+  "next_round_handoff": {
+    "interaction_round": "construct a full 2^k factorial over the selected factors; do not infer aliased interactions from L8",
+    "method": "fit main effects with block/position covariates; preserve alias uncertainty",
+    "promotion_rule": "only exact-oracle-passing, memory-safe factors with stable sign across blocks",
+    "source_commit_for_next_round": "the screening commit plus append-only result ledger",
+    "status": "WAITING_FOR_SCREENING_RESULTS"
+  },
+  "objective": {
+    "benchmark": "B32 exact F+B",
+    "control_latency_ms_approx": 1655.0,
+    "oracle_before_timing": true,
+    "target_latency_ms_approx": 728.0,
+    "target_real_tok_s": 90000.0
+  },
+  "plan_id": "G0-L8-SM120-EXACT-B32",
+  "predicted_effects": {
+    "checkpoint_policy": {
+      "caution": "selective candidate-QK-block checkpoint from 0001 is excluded",
+      "confidence": "low",
+      "direction": "ambiguous_latency__positive_memory_headroom",
+      "evidence_basis": "checkpointing is a known memory/runtime tradeoff; prior chunked-state failures are not evidence for this isolated policy",
+      "high_level": "selective_exact_projection_only",
+      "magnitude_prior": "variable"
+    },
+    "dx_gemm_backend": {
+      "caution": "same operands, shapes, layouts, and accumulation contract",
+      "confidence": "medium",
+      "direction": "negative_latency",
+      "evidence_basis": "full-shape projection/GEMM traffic and exact N64 fused tile evidence",
+      "high_level": "native_sm120_dx_gemm",
+      "magnitude_prior": "medium"
+    },
+    "dy_gemm_backend": {
+      "caution": "Dy is exact; only backend/launch representation may change",
+      "confidence": "medium",
+      "direction": "negative_latency",
+      "evidence_basis": "projection and pointwise materialization are measured costs",
+      "high_level": "native_sm120_dy_gemm",
+      "magnitude_prior": "medium"
+    },
+    "dy_relu_epilogue_layout": {
+      "caution": "component evidence is not an end-to-end TPS claim",
+      "confidence": "medium_to_high",
+      "direction": "negative_latency",
+      "evidence_basis": "component diagnostic measured materialized neuron 53.947 ms, fused pointwise 25.119 ms, compiled 15.805 ms",
+      "high_level": "exact_dy_relu_epilogue_layout",
+      "magnitude_prior": "large"
+    },
+    "e_gemm": {
+      "caution": "do not use FP4, quantization, or an approximate E operator",
+      "confidence": "low_to_medium",
+      "direction": "negative_latency",
+      "evidence_basis": "native SM120 GEMM is an explicit hardware hypothesis; no clean isolated E result yet",
+      "high_level": "native_sm120_e_gemm",
+      "magnitude_prior": "medium"
+    },
+    "full_symmetric_qk_sm120": {
+      "caution": "full strict-lower same-document Q=K only; blocked-prefix read is excluded",
+      "confidence": "medium",
+      "direction": "negative_latency",
+      "evidence_basis": "attention is a measured dominant component; exact attention probes passed",
+      "high_level": "native_sm120_full_symmetric_qk",
+      "magnitude_prior": "large"
+    },
+    "qk_backward": {
+      "caution": "must accumulate query and key roles into one exact Q gradient",
+      "confidence": "medium",
+      "direction": "negative_latency",
+      "evidence_basis": "tied-QK gradient is an invariant and attention backward is a measured cost center",
+      "high_level": "native_tied_qk_vjp",
+      "magnitude_prior": "medium"
+    }
+  },
+  "randomization": {
+    "blocks": 2,
+    "control_interleave": "anchor before each block, after every two candidate slots, plus block-end anchor and randomized control row G0-00",
+    "replicates_per_arm": 2,
+    "seed": 20260909,
+    "thermal_drift_covariate": "block_id and within-block position"
+  },
+  "result_contract": {
+    "append_only": true,
+    "format": "JSONL",
+    "one_record_per_run_id": true,
+    "required_fields": [
+      "run_id",
+      "arm_id",
+      "block_id",
+      "oracle",
+      "latency_ms",
+      "real_input_tok_s",
+      "decision",
+      "source_commit"
+    ],
+    "schema": "schemas/generation0_result.schema.json"
+  },
+  "run_order": [
+    {
+      "arm_id": "CONTROL",
+      "block_id": 1,
+      "control_interleaved": true,
+      "kind": "control_anchor",
+      "oracle_required": true,
+      "randomization_seed": 20260909,
+      "run_id": "G0-R01",
+      "within_block_position": 1
+    },
+    {
+      "arm_id": "G0-02",
+      "block_id": 1,
+      "control_interleaved": false,
+      "kind": "arm",
+      "oracle_required": true,
+      "randomization_seed": 20260909,
+      "run_id": "G0-R02",
+      "within_block_position": 2
+    },
+    {
+      "arm_id": "G0-03",
+      "block_id": 1,
+      "control_interleaved": false,
+      "kind": "arm",
+      "oracle_required": true,
+      "randomization_seed": 20260909,
+      "run_id": "G0-R03",
+      "within_block_position": 3
+    },
+    {
+      "arm_id": "CONTROL",
+      "block_id": 1,
+      "control_interleaved": true,
+      "kind": "control_interleave",
+      "oracle_required": true,
+      "randomization_seed": 20260909,
+      "run_id": "G0-R04",
+      "within_block_position": 4
+    },
+    {
+      "arm_id": "G0-05",
+      "block_id": 1,
+      "control_interleaved": false,
+      "kind": "arm",
+      "oracle_required": true,
+      "randomization_seed": 20260909,
+      "run_id": "G0-R05",
+      "within_block_position": 5
+    },
+    {
+      "arm_id": "G0-06",
+      "block_id": 1,
+      "control_interleaved": false,
+      "kind": "arm",
+      "oracle_required": true,
+      "randomization_seed": 20260909,
+      "run_id": "G0-R06",
+      "within_block_position": 6
+    },
+    {
+      "arm_id": "CONTROL",
+      "block_id": 1,
+      "control_interleaved": true,
+      "kind": "control_interleave",
+      "oracle_required": true,
+      "randomization_seed": 20260909,
+      "run_id": "G0-R07",
+      "within_block_position": 7
+    },
+    {
+      "arm_id": "G0-04",
+      "block_id": 1,
+      "control_interleaved": false,
+      "kind": "arm",
+      "oracle_required": true,
+      "randomization_seed": 20260909,
+      "run_id": "G0-R08",
+      "within_block_position": 8
+    },
+    {
+      "arm_id": "G0-07",
+      "block_id": 1,
+      "control_interleaved": false,
+      "kind": "arm",
+      "oracle_required": true,
+      "randomization_seed": 20260909,
+      "run_id": "G0-R09",
+      "within_block_position": 9
+    },
+    {
+      "arm_id": "CONTROL",
+      "block_id": 1,
+      "control_interleaved": true,
+      "kind": "control_interleave",
+      "oracle_required": true,
+      "randomization_seed": 20260909,
+      "run_id": "G0-R10",
+      "within_block_position": 10
+    },
+    {
+      "arm_id": "G0-00",
+      "block_id": 1,
+      "control_interleaved": true,
+      "kind": "arm",
+      "oracle_required": true,
+      "randomization_seed": 20260909,
+      "run_id": "G0-R11",
+      "within_block_position": 11
+    },
+    {
+      "arm_id": "G0-01",
+      "block_id": 1,
+      "control_interleaved": false,
+      "kind": "arm",
+      "oracle_required": true,
+      "randomization_seed": 20260909,
+      "run_id": "G0-R12",
+      "within_block_position": 12
+    },
+    {
+      "arm_id": "CONTROL",
+      "block_id": 1,
+      "control_interleaved": true,
+      "kind": "control_anchor",
+      "oracle_required": true,
+      "randomization_seed": 20260909,
+      "run_id": "G0-R13",
+      "within_block_position": 13
+    },
+    {
+      "arm_id": "CONTROL",
+      "block_id": 2,
+      "control_interleaved": true,
+      "kind": "control_anchor",
+      "oracle_required": true,
+      "randomization_seed": 20260909,
+      "run_id": "G0-R14",
+      "within_block_position": 1
+    },
+    {
+      "arm_id": "G0-07",
+      "block_id": 2,
+      "control_interleaved": false,
+      "kind": "arm",
+      "oracle_required": true,
+      "randomization_seed": 20260909,
+      "run_id": "G0-R15",
+      "within_block_position": 2
+    },
+    {
+      "arm_id": "G0-03",
+      "block_id": 2,
+      "control_interleaved": false,
+      "kind": "arm",
+      "oracle_required": true,
+      "randomization_seed": 20260909,
+      "run_id": "G0-R16",
+      "within_block_position": 3
+    },
+    {
+      "arm_id": "CONTROL",
+      "block_id": 2,
+      "control_interleaved": true,
+      "kind": "control_interleave",
+      "oracle_required": true,
+      "randomization_seed": 20260909,
+      "run_id": "G0-R17",
+      "within_block_position": 4
+    },
+    {
+      "arm_id": "G0-02",
+      "block_id": 2,
+      "control_interleaved": false,
+      "kind": "arm",
+      "oracle_required": true,
+      "randomization_seed": 20260909,
+      "run_id": "G0-R18",
+      "within_block_position": 5
+    },
+    {
+      "arm_id": "G0-01",
+      "block_id": 2,
+      "control_interleaved": false,
+      "kind": "arm",
+      "oracle_required": true,
+      "randomization_seed": 20260909,
+      "run_id": "G0-R19",
+      "within_block_position": 6
+    },
+    {
+      "arm_id": "CONTROL",
+      "block_id": 2,
+      "control_interleaved": true,
+      "kind": "control_interleave",
+      "oracle_required": true,
+      "randomization_seed": 20260909,
+      "run_id": "G0-R20",
+      "within_block_position": 7
+    },
+    {
+      "arm_id": "G0-00",
+      "block_id": 2,
+      "control_interleaved": true,
+      "kind": "arm",
+      "oracle_required": true,
+      "randomization_seed": 20260909,
+      "run_id": "G0-R21",
+      "within_block_position": 8
+    },
+    {
+      "arm_id": "G0-06",
+      "block_id": 2,
+      "control_interleaved": false,
+      "kind": "arm",
+      "oracle_required": true,
+      "randomization_seed": 20260909,
+      "run_id": "G0-R22",
+      "within_block_position": 9
+    },
+    {
+      "arm_id": "CONTROL",
+      "block_id": 2,
+      "control_interleaved": true,
+      "kind": "control_interleave",
+      "oracle_required": true,
+      "randomization_seed": 20260909,
+      "run_id": "G0-R23",
+      "within_block_position": 10
+    },
+    {
+      "arm_id": "G0-05",
+      "block_id": 2,
+      "control_interleaved": false,
+      "kind": "arm",
+      "oracle_required": true,
+      "randomization_seed": 20260909,
+      "run_id": "G0-R24",
+      "within_block_position": 11
+    },
+    {
+      "arm_id": "G0-04",
+      "block_id": 2,
+      "control_interleaved": false,
+      "kind": "arm",
+      "oracle_required": true,
+      "randomization_seed": 20260909,
+      "run_id": "G0-R25",
+      "within_block_position": 12
+    },
+    {
+      "arm_id": "CONTROL",
+      "block_id": 2,
+      "control_interleaved": true,
+      "kind": "control_anchor",
+      "oracle_required": true,
+      "randomization_seed": 20260909,
+      "run_id": "G0-R26",
+      "within_block_position": 13
+    }
+  ],
+  "schema_version": 1,
+  "science_delta_allowed": false,
+  "status": "SPEC_ONLY_NO_EXECUTION"
+}

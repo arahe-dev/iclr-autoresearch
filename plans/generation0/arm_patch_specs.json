@@ -1,0 +1,539 @@
+{
+  "arms": [
+    {
+      "arm_id": "G0-00",
+      "patch_spec": {
+        "active_high_factors": [],
+        "allowed_change_class": "execution_representation_only",
+        "forbidden_operations": [
+          "architecture or equation change",
+          "approximate/quantized operator",
+          "blocked-prefix read or [B,T,H,K] native-read branch",
+          "chunked-state/SplitScan branch",
+          "N128 rejected tile configurations",
+          "optimizer, loss, corpus, or checkpoint-file semantics change"
+        ],
+        "measurement": {
+          "benchmark": "B32",
+          "control_latency_ms_approx": 1655.0,
+          "objective": "exact forward+backward latency_ms",
+          "oracle_before_timing": true,
+          "target_latency_ms_approx": 728.0
+        },
+        "operations": [],
+        "parent_experiment": "0000",
+        "patch_id": "G0-00",
+        "required_invariants": [
+          "Arm-A science unchanged",
+          "exact full/symmetric Q=K attention",
+          "strict-exclusive same-document masking and resets",
+          "tied-QK backward",
+          "no softmax and no attention scale",
+          "real frozen corpus and valid-target accounting",
+          "FP32 oracle and gradient gates pass before timing"
+        ],
+        "selected_levels": {
+          "checkpoint_policy": "whole_level",
+          "dx_gemm_backend": "control_dx_gemm",
+          "dy_gemm_backend": "control_dy_gemm",
+          "dy_relu_epilogue_layout": "materialized_baseline_layout",
+          "e_gemm": "reference_e_gemm",
+          "full_symmetric_qk_sm120": "control_full_symmetric_qk",
+          "qk_backward": "control_tied_qk_vjp"
+        },
+        "status": "SPEC_ONLY_NO_EXECUTION"
+      }
+    },
+    {
+      "arm_id": "G0-01",
+      "patch_spec": {
+        "active_high_factors": [
+          "dx_gemm_backend",
+          "e_gemm",
+          "dy_relu_epilogue_layout",
+          "checkpoint_policy"
+        ],
+        "allowed_change_class": "execution_representation_only",
+        "forbidden_operations": [
+          "architecture or equation change",
+          "approximate/quantized operator",
+          "blocked-prefix read or [B,T,H,K] native-read branch",
+          "chunked-state/SplitScan branch",
+          "N128 rejected tile configurations",
+          "optimizer, loss, corpus, or checkpoint-file semantics change"
+        ],
+        "measurement": {
+          "benchmark": "B32",
+          "control_latency_ms_approx": 1655.0,
+          "objective": "exact forward+backward latency_ms",
+          "oracle_before_timing": true,
+          "target_latency_ms_approx": 728.0
+        },
+        "operations": [
+          {
+            "factor": "dx_gemm_backend",
+            "operation": "Change only the Dx GEMM backend/launch; preserve dimensions, operand values, logical layout, BF16 operands, and FP32 accumulation/master-weight semantics.",
+            "status": "SPEC_ONLY"
+          },
+          {
+            "factor": "e_gemm",
+            "operation": "Change only the E GEMM backend/launch; preserve exact E values, dimensions, layout contract, and FP32 accumulation/master weights.",
+            "status": "SPEC_ONLY"
+          },
+          {
+            "factor": "dy_relu_epilogue_layout",
+            "operation": "Fuse or change only the Dy\u2192ReLU epilogue/layout while preserving exact ReLU semantics, output layout contract, and the independent oracle tolerance.",
+            "status": "SPEC_ONLY"
+          },
+          {
+            "factor": "checkpoint_policy",
+            "operation": "Change only the checkpoint boundary to whole-level or selective exact projection-only recomputation; do not checkpoint the killed candidate QK-block read path and do not change the forward graph.",
+            "status": "SPEC_ONLY"
+          }
+        ],
+        "parent_experiment": "0000",
+        "patch_id": "G0-01",
+        "required_invariants": [
+          "Arm-A science unchanged",
+          "exact full/symmetric Q=K attention",
+          "strict-exclusive same-document masking and resets",
+          "tied-QK backward",
+          "no softmax and no attention scale",
+          "real frozen corpus and valid-target accounting",
+          "FP32 oracle and gradient gates pass before timing"
+        ],
+        "selected_levels": {
+          "checkpoint_policy": "selective_exact_projection_only",
+          "dx_gemm_backend": "native_sm120_dx_gemm",
+          "dy_gemm_backend": "control_dy_gemm",
+          "dy_relu_epilogue_layout": "exact_dy_relu_epilogue_layout",
+          "e_gemm": "native_sm120_e_gemm",
+          "full_symmetric_qk_sm120": "control_full_symmetric_qk",
+          "qk_backward": "control_tied_qk_vjp"
+        },
+        "status": "SPEC_ONLY_NO_EXECUTION"
+      }
+    },
+    {
+      "arm_id": "G0-02",
+      "patch_spec": {
+        "active_high_factors": [
+          "qk_backward",
+          "dy_gemm_backend",
+          "dy_relu_epilogue_layout",
+          "checkpoint_policy"
+        ],
+        "allowed_change_class": "execution_representation_only",
+        "forbidden_operations": [
+          "architecture or equation change",
+          "approximate/quantized operator",
+          "blocked-prefix read or [B,T,H,K] native-read branch",
+          "chunked-state/SplitScan branch",
+          "N128 rejected tile configurations",
+          "optimizer, loss, corpus, or checkpoint-file semantics change"
+        ],
+        "measurement": {
+          "benchmark": "B32",
+          "control_latency_ms_approx": 1655.0,
+          "objective": "exact forward+backward latency_ms",
+          "oracle_before_timing": true,
+          "target_latency_ms_approx": 728.0
+        },
+        "operations": [
+          {
+            "factor": "qk_backward",
+            "operation": "Change only the exact tied-QK VJP dispatch; accumulate the query-role and key-role contributions into the single Q gradient without materializing an independent K or changing the VJP.",
+            "status": "SPEC_ONLY"
+          },
+          {
+            "factor": "dy_gemm_backend",
+            "operation": "Change only the Dy GEMM backend/launch; preserve exact Dy values and all downstream writer semantics.",
+            "status": "SPEC_ONLY"
+          },
+          {
+            "factor": "dy_relu_epilogue_layout",
+            "operation": "Fuse or change only the Dy\u2192ReLU epilogue/layout while preserving exact ReLU semantics, output layout contract, and the independent oracle tolerance.",
+            "status": "SPEC_ONLY"
+          },
+          {
+            "factor": "checkpoint_policy",
+            "operation": "Change only the checkpoint boundary to whole-level or selective exact projection-only recomputation; do not checkpoint the killed candidate QK-block read path and do not change the forward graph.",
+            "status": "SPEC_ONLY"
+          }
+        ],
+        "parent_experiment": "0000",
+        "patch_id": "G0-02",
+        "required_invariants": [
+          "Arm-A science unchanged",
+          "exact full/symmetric Q=K attention",
+          "strict-exclusive same-document masking and resets",
+          "tied-QK backward",
+          "no softmax and no attention scale",
+          "real frozen corpus and valid-target accounting",
+          "FP32 oracle and gradient gates pass before timing"
+        ],
+        "selected_levels": {
+          "checkpoint_policy": "selective_exact_projection_only",
+          "dx_gemm_backend": "control_dx_gemm",
+          "dy_gemm_backend": "native_sm120_dy_gemm",
+          "dy_relu_epilogue_layout": "exact_dy_relu_epilogue_layout",
+          "e_gemm": "reference_e_gemm",
+          "full_symmetric_qk_sm120": "control_full_symmetric_qk",
+          "qk_backward": "native_tied_qk_vjp"
+        },
+        "status": "SPEC_ONLY_NO_EXECUTION"
+      }
+    },
+    {
+      "arm_id": "G0-03",
+      "patch_spec": {
+        "active_high_factors": [
+          "qk_backward",
+          "dx_gemm_backend",
+          "dy_gemm_backend",
+          "e_gemm"
+        ],
+        "allowed_change_class": "execution_representation_only",
+        "forbidden_operations": [
+          "architecture or equation change",
+          "approximate/quantized operator",
+          "blocked-prefix read or [B,T,H,K] native-read branch",
+          "chunked-state/SplitScan branch",
+          "N128 rejected tile configurations",
+          "optimizer, loss, corpus, or checkpoint-file semantics change"
+        ],
+        "measurement": {
+          "benchmark": "B32",
+          "control_latency_ms_approx": 1655.0,
+          "objective": "exact forward+backward latency_ms",
+          "oracle_before_timing": true,
+          "target_latency_ms_approx": 728.0
+        },
+        "operations": [
+          {
+            "factor": "qk_backward",
+            "operation": "Change only the exact tied-QK VJP dispatch; accumulate the query-role and key-role contributions into the single Q gradient without materializing an independent K or changing the VJP.",
+            "status": "SPEC_ONLY"
+          },
+          {
+            "factor": "dx_gemm_backend",
+            "operation": "Change only the Dx GEMM backend/launch; preserve dimensions, operand values, logical layout, BF16 operands, and FP32 accumulation/master-weight semantics.",
+            "status": "SPEC_ONLY"
+          },
+          {
+            "factor": "dy_gemm_backend",
+            "operation": "Change only the Dy GEMM backend/launch; preserve exact Dy values and all downstream writer semantics.",
+            "status": "SPEC_ONLY"
+          },
+          {
+            "factor": "e_gemm",
+            "operation": "Change only the E GEMM backend/launch; preserve exact E values, dimensions, layout contract, and FP32 accumulation/master weights.",
+            "status": "SPEC_ONLY"
+          }
+        ],
+        "parent_experiment": "0000",
+        "patch_id": "G0-03",
+        "required_invariants": [
+          "Arm-A science unchanged",
+          "exact full/symmetric Q=K attention",
+          "strict-exclusive same-document masking and resets",
+          "tied-QK backward",
+          "no softmax and no attention scale",
+          "real frozen corpus and valid-target accounting",
+          "FP32 oracle and gradient gates pass before timing"
+        ],
+        "selected_levels": {
+          "checkpoint_policy": "whole_level",
+          "dx_gemm_backend": "native_sm120_dx_gemm",
+          "dy_gemm_backend": "native_sm120_dy_gemm",
+          "dy_relu_epilogue_layout": "materialized_baseline_layout",
+          "e_gemm": "native_sm120_e_gemm",
+          "full_symmetric_qk_sm120": "control_full_symmetric_qk",
+          "qk_backward": "native_tied_qk_vjp"
+        },
+        "status": "SPEC_ONLY_NO_EXECUTION"
+      }
+    },
+    {
+      "arm_id": "G0-04",
+      "patch_spec": {
+        "active_high_factors": [
+          "full_symmetric_qk_sm120",
+          "dy_gemm_backend",
+          "e_gemm",
+          "checkpoint_policy"
+        ],
+        "allowed_change_class": "execution_representation_only",
+        "forbidden_operations": [
+          "architecture or equation change",
+          "approximate/quantized operator",
+          "blocked-prefix read or [B,T,H,K] native-read branch",
+          "chunked-state/SplitScan branch",
+          "N128 rejected tile configurations",
+          "optimizer, loss, corpus, or checkpoint-file semantics change"
+        ],
+        "measurement": {
+          "benchmark": "B32",
+          "control_latency_ms_approx": 1655.0,
+          "objective": "exact forward+backward latency_ms",
+          "oracle_before_timing": true,
+          "target_latency_ms_approx": 728.0
+        },
+        "operations": [
+          {
+            "factor": "full_symmetric_qk_sm120",
+            "operation": "Change only the attention backend dispatch to a native SM120 full/symmetric QK implementation; retain full T\u00d7T logical scores, strict-exclusive same-document masking, Q=K, shared V, no softmax, and no scale.",
+            "status": "SPEC_ONLY"
+          },
+          {
+            "factor": "dy_gemm_backend",
+            "operation": "Change only the Dy GEMM backend/launch; preserve exact Dy values and all downstream writer semantics.",
+            "status": "SPEC_ONLY"
+          },
+          {
+            "factor": "e_gemm",
+            "operation": "Change only the E GEMM backend/launch; preserve exact E values, dimensions, layout contract, and FP32 accumulation/master weights.",
+            "status": "SPEC_ONLY"
+          },
+          {
+            "factor": "checkpoint_policy",
+            "operation": "Change only the checkpoint boundary to whole-level or selective exact projection-only recomputation; do not checkpoint the killed candidate QK-block read path and do not change the forward graph.",
+            "status": "SPEC_ONLY"
+          }
+        ],
+        "parent_experiment": "0000",
+        "patch_id": "G0-04",
+        "required_invariants": [
+          "Arm-A science unchanged",
+          "exact full/symmetric Q=K attention",
+          "strict-exclusive same-document masking and resets",
+          "tied-QK backward",
+          "no softmax and no attention scale",
+          "real frozen corpus and valid-target accounting",
+          "FP32 oracle and gradient gates pass before timing"
+        ],
+        "selected_levels": {
+          "checkpoint_policy": "selective_exact_projection_only",
+          "dx_gemm_backend": "control_dx_gemm",
+          "dy_gemm_backend": "native_sm120_dy_gemm",
+          "dy_relu_epilogue_layout": "materialized_baseline_layout",
+          "e_gemm": "native_sm120_e_gemm",
+          "full_symmetric_qk_sm120": "native_sm120_full_symmetric_qk",
+          "qk_backward": "control_tied_qk_vjp"
+        },
+        "status": "SPEC_ONLY_NO_EXECUTION"
+      }
+    },
+    {
+      "arm_id": "G0-05",
+      "patch_spec": {
+        "active_high_factors": [
+          "full_symmetric_qk_sm120",
+          "dx_gemm_backend",
+          "dy_gemm_backend",
+          "dy_relu_epilogue_layout"
+        ],
+        "allowed_change_class": "execution_representation_only",
+        "forbidden_operations": [
+          "architecture or equation change",
+          "approximate/quantized operator",
+          "blocked-prefix read or [B,T,H,K] native-read branch",
+          "chunked-state/SplitScan branch",
+          "N128 rejected tile configurations",
+          "optimizer, loss, corpus, or checkpoint-file semantics change"
+        ],
+        "measurement": {
+          "benchmark": "B32",
+          "control_latency_ms_approx": 1655.0,
+          "objective": "exact forward+backward latency_ms",
+          "oracle_before_timing": true,
+          "target_latency_ms_approx": 728.0
+        },
+        "operations": [
+          {
+            "factor": "full_symmetric_qk_sm120",
+            "operation": "Change only the attention backend dispatch to a native SM120 full/symmetric QK implementation; retain full T\u00d7T logical scores, strict-exclusive same-document masking, Q=K, shared V, no softmax, and no scale.",
+            "status": "SPEC_ONLY"
+          },
+          {
+            "factor": "dx_gemm_backend",
+            "operation": "Change only the Dx GEMM backend/launch; preserve dimensions, operand values, logical layout, BF16 operands, and FP32 accumulation/master-weight semantics.",
+            "status": "SPEC_ONLY"
+          },
+          {
+            "factor": "dy_gemm_backend",
+            "operation": "Change only the Dy GEMM backend/launch; preserve exact Dy values and all downstream writer semantics.",
+            "status": "SPEC_ONLY"
+          },
+          {
+            "factor": "dy_relu_epilogue_layout",
+            "operation": "Fuse or change only the Dy\u2192ReLU epilogue/layout while preserving exact ReLU semantics, output layout contract, and the independent oracle tolerance.",
+            "status": "SPEC_ONLY"
+          }
+        ],
+        "parent_experiment": "0000",
+        "patch_id": "G0-05",
+        "required_invariants": [
+          "Arm-A science unchanged",
+          "exact full/symmetric Q=K attention",
+          "strict-exclusive same-document masking and resets",
+          "tied-QK backward",
+          "no softmax and no attention scale",
+          "real frozen corpus and valid-target accounting",
+          "FP32 oracle and gradient gates pass before timing"
+        ],
+        "selected_levels": {
+          "checkpoint_policy": "whole_level",
+          "dx_gemm_backend": "native_sm120_dx_gemm",
+          "dy_gemm_backend": "native_sm120_dy_gemm",
+          "dy_relu_epilogue_layout": "exact_dy_relu_epilogue_layout",
+          "e_gemm": "reference_e_gemm",
+          "full_symmetric_qk_sm120": "native_sm120_full_symmetric_qk",
+          "qk_backward": "control_tied_qk_vjp"
+        },
+        "status": "SPEC_ONLY_NO_EXECUTION"
+      }
+    },
+    {
+      "arm_id": "G0-06",
+      "patch_spec": {
+        "active_high_factors": [
+          "full_symmetric_qk_sm120",
+          "qk_backward",
+          "e_gemm",
+          "dy_relu_epilogue_layout"
+        ],
+        "allowed_change_class": "execution_representation_only",
+        "forbidden_operations": [
+          "architecture or equation change",
+          "approximate/quantized operator",
+          "blocked-prefix read or [B,T,H,K] native-read branch",
+          "chunked-state/SplitScan branch",
+          "N128 rejected tile configurations",
+          "optimizer, loss, corpus, or checkpoint-file semantics change"
+        ],
+        "measurement": {
+          "benchmark": "B32",
+          "control_latency_ms_approx": 1655.0,
+          "objective": "exact forward+backward latency_ms",
+          "oracle_before_timing": true,
+          "target_latency_ms_approx": 728.0
+        },
+        "operations": [
+          {
+            "factor": "full_symmetric_qk_sm120",
+            "operation": "Change only the attention backend dispatch to a native SM120 full/symmetric QK implementation; retain full T\u00d7T logical scores, strict-exclusive same-document masking, Q=K, shared V, no softmax, and no scale.",
+            "status": "SPEC_ONLY"
+          },
+          {
+            "factor": "qk_backward",
+            "operation": "Change only the exact tied-QK VJP dispatch; accumulate the query-role and key-role contributions into the single Q gradient without materializing an independent K or changing the VJP.",
+            "status": "SPEC_ONLY"
+          },
+          {
+            "factor": "e_gemm",
+            "operation": "Change only the E GEMM backend/launch; preserve exact E values, dimensions, layout contract, and FP32 accumulation/master weights.",
+            "status": "SPEC_ONLY"
+          },
+          {
+            "factor": "dy_relu_epilogue_layout",
+            "operation": "Fuse or change only the Dy\u2192ReLU epilogue/layout while preserving exact ReLU semantics, output layout contract, and the independent oracle tolerance.",
+            "status": "SPEC_ONLY"
+          }
+        ],
+        "parent_experiment": "0000",
+        "patch_id": "G0-06",
+        "required_invariants": [
+          "Arm-A science unchanged",
+          "exact full/symmetric Q=K attention",
+          "strict-exclusive same-document masking and resets",
+          "tied-QK backward",
+          "no softmax and no attention scale",
+          "real frozen corpus and valid-target accounting",
+          "FP32 oracle and gradient gates pass before timing"
+        ],
+        "selected_levels": {
+          "checkpoint_policy": "whole_level",
+          "dx_gemm_backend": "control_dx_gemm",
+          "dy_gemm_backend": "control_dy_gemm",
+          "dy_relu_epilogue_layout": "exact_dy_relu_epilogue_layout",
+          "e_gemm": "native_sm120_e_gemm",
+          "full_symmetric_qk_sm120": "native_sm120_full_symmetric_qk",
+          "qk_backward": "native_tied_qk_vjp"
+        },
+        "status": "SPEC_ONLY_NO_EXECUTION"
+      }
+    },
+    {
+      "arm_id": "G0-07",
+      "patch_spec": {
+        "active_high_factors": [
+          "full_symmetric_qk_sm120",
+          "qk_backward",
+          "dx_gemm_backend",
+          "checkpoint_policy"
+        ],
+        "allowed_change_class": "execution_representation_only",
+        "forbidden_operations": [
+          "architecture or equation change",
+          "approximate/quantized operator",
+          "blocked-prefix read or [B,T,H,K] native-read branch",
+          "chunked-state/SplitScan branch",
+          "N128 rejected tile configurations",
+          "optimizer, loss, corpus, or checkpoint-file semantics change"
+        ],
+        "measurement": {
+          "benchmark": "B32",
+          "control_latency_ms_approx": 1655.0,
+          "objective": "exact forward+backward latency_ms",
+          "oracle_before_timing": true,
+          "target_latency_ms_approx": 728.0
+        },
+        "operations": [
+          {
+            "factor": "full_symmetric_qk_sm120",
+            "operation": "Change only the attention backend dispatch to a native SM120 full/symmetric QK implementation; retain full T\u00d7T logical scores, strict-exclusive same-document masking, Q=K, shared V, no softmax, and no scale.",
+            "status": "SPEC_ONLY"
+          },
+          {
+            "factor": "qk_backward",
+            "operation": "Change only the exact tied-QK VJP dispatch; accumulate the query-role and key-role contributions into the single Q gradient without materializing an independent K or changing the VJP.",
+            "status": "SPEC_ONLY"
+          },
+          {
+            "factor": "dx_gemm_backend",
+            "operation": "Change only the Dx GEMM backend/launch; preserve dimensions, operand values, logical layout, BF16 operands, and FP32 accumulation/master-weight semantics.",
+            "status": "SPEC_ONLY"
+          },
+          {
+            "factor": "checkpoint_policy",
+            "operation": "Change only the checkpoint boundary to whole-level or selective exact projection-only recomputation; do not checkpoint the killed candidate QK-block read path and do not change the forward graph.",
+            "status": "SPEC_ONLY"
+          }
+        ],
+        "parent_experiment": "0000",
+        "patch_id": "G0-07",
+        "required_invariants": [
+          "Arm-A science unchanged",
+          "exact full/symmetric Q=K attention",
+          "strict-exclusive same-document masking and resets",
+          "tied-QK backward",
+          "no softmax and no attention scale",
+          "real frozen corpus and valid-target accounting",
+          "FP32 oracle and gradient gates pass before timing"
+        ],
+        "selected_levels": {
+          "checkpoint_policy": "selective_exact_projection_only",
+          "dx_gemm_backend": "native_sm120_dx_gemm",
+          "dy_gemm_backend": "control_dy_gemm",
+          "dy_relu_epilogue_layout": "materialized_baseline_layout",
+          "e_gemm": "reference_e_gemm",
+          "full_symmetric_qk_sm120": "native_sm120_full_symmetric_qk",
+          "qk_backward": "native_tied_qk_vjp"
+        },
+        "status": "SPEC_ONLY_NO_EXECUTION"
+      }
+    }
+  ],
+  "plan_id": "G0-L8-SM120-EXACT-B32"
+}

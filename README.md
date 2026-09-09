@@ -16,7 +16,9 @@ Experiment `0001` records the exact `[B,T,H,K]` plus causal-prefix candidate: FP
 
 ## Generation-0 screen
 
-[configs/generation_0_screening.json](configs/generation_0_screening.json) and `python scripts/run_doe.py` define the one-factor-at-a-time screen for exact attention/Q=K backward, native SM120 GEMMs, Dy+ReLU epilogues/layout, E GEMM, and checkpoint policy. All rows are marked `PLANNED_NO_EXECUTION`; `--execute` is fail-closed. No approximate operator or architecture change is included.
+[configs/generation_0_screening.json](configs/generation_0_screening.json) and [plans/generation0/matrix.json](plans/generation0/matrix.json) define the L8(2^7) Taguchi-style screen for exact full/symmetric QK, tied-QK backward, separate Dx/Dy/E native SM120 GEMMs, Dy+ReLU epilogues/layout, and checkpoint policy. The objective is exact B32 F+B latency: approximately 1,655 ms for the current control and approximately 728 ms at 90k real tok/s. The plan has 26 randomized/interleaved-control run slots across two blocks, with oracle correctness required before timing.
+
+All rows are marked `SPEC_ONLY_NO_EXECUTION`; `--execute` is fail-closed. The plan excludes every branch already killed in the evidence ledger and contains no approximate operator or architecture change. See [run_order.json](plans/generation0/run_order.json), [arm_patch_specs.json](plans/generation0/arm_patch_specs.json), and [plans/generation0/README.md](plans/generation0/README.md).
 
 The reusable infrastructure lives under `src/icrl_autoresearch/`:
 
@@ -26,6 +28,8 @@ The reusable infrastructure lives under `src/icrl_autoresearch/`:
 - `doe.py`: Generation-0 plan generation without model execution.
 - `decisions.py`: declared keep/revert gates, including the 1.10x read gate and 90k target.
 - `git_ops.py`: candidate/champion branch naming and explicit promotion plans.
+- `generation0.py`: L8 matrix, predicted effects, interaction aliases, randomized run order, and per-arm patch specs.
+- `results.py`: append-only oracle-gated JSONL result writer.
 
 ## Safe checks
 
@@ -35,7 +39,7 @@ python scripts/import_evidence.py
 python scripts/benchmark.py
 python scripts/run_doe.py
 python scripts/decide.py experiments/0001_native_read_reverted/report.json
+python scripts/generate_generation0.py
 ```
 
-The first command is the repository integrity check. No CUDA runtime is needed for these checks; CUDA benchmarks and profiling are intentionally not launched by this scaffold.
-
+The first command is the repository integrity check. No CUDA runtime is needed for these checks; CUDA benchmarks, profiling, and champion changes are intentionally not launched by this scaffold.

@@ -11,6 +11,7 @@ from icrl_autoresearch.benchmarks import B32, B64, summarize, throughput_tok_s
 from icrl_autoresearch.contract import load_contract, source_sha256
 from icrl_autoresearch.decisions import evaluate_report, read_gate
 from icrl_autoresearch.doe import screening_plan
+from icrl_autoresearch.generation0 import FACTOR_ORDER, build_plan
 from icrl_autoresearch.validation import validate_repo
 
 
@@ -39,6 +40,17 @@ class InfrastructureTests(unittest.TestCase):
         self.assertFalse(plan["science_delta_allowed"])
         self.assertEqual(plan["status"], "PLANNED_NO_EXECUTION")
         self.assertTrue(all(row["science_delta"] is False for row in plan["rows"]))
+
+    def test_generation0_l8_is_balanced_and_control_anchored(self) -> None:
+        plan = build_plan()
+        self.assertEqual(plan["base_commit"], "908b0b1")
+        self.assertEqual(plan["arms"][0]["level_string"], "0000000")
+        self.assertEqual(len(plan["arms"]), 8)
+        for factor in FACTOR_ORDER:
+            self.assertEqual(sum(arm["levels"][factor] for arm in plan["arms"]), 4)
+        self.assertEqual(len(plan["run_order"]), 26)
+        self.assertFalse(plan["execution_allowed"])
+        self.assertTrue(all(arm["patch_spec"]["status"] == "SPEC_ONLY_NO_EXECUTION" for arm in plan["arms"]))
 
     def test_repository_validation(self) -> None:
         result = validate_repo(ROOT)
