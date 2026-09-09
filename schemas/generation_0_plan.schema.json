@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://icrl-autoresearch.local/schemas/generation_0_plan.schema.json",
+  "title": "Generation-0 exact-BDH screening plan",
+  "type": "object",
+  "required": ["schema_version", "generation", "status", "science_delta_allowed", "factors"],
+  "properties": {
+    "schema_version": {"type": "integer", "const": 1},
+    "generation": {"type": "integer", "const": 0},
+    "status": {"type": "string", "const": "PLANNED_NO_EXECUTION"},
+    "science_delta_allowed": {"type": "boolean", "const": false},
+    "factors": {"type": "array", "minItems": 1}
+  },
+  "additionalProperties": true
+}
+

@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://icrl-autoresearch.local/schemas/evidence_record.schema.json",
+  "title": "ICRL autoresearch evidence record",
+  "type": "object",
+  "required": ["evidence_id", "kind", "status", "decision", "source", "interpretation"],
+  "properties": {
+    "evidence_id": {"type": "string"},
+    "experiment_id": {"type": ["string", "null"]},
+    "kind": {"type": "string"},
+    "status": {"type": "string"},
+    "decision": {"type": "string"},
+    "source": {"type": "object"},
+    "scope": {"type": "object"},
+    "correctness": {"type": "object"},
+    "metrics": {"type": "object"},
+    "search_space_killed": {"type": "array", "items": {"type": "string"}},
+    "interpretation": {"type": "string"}
+  },
+  "additionalProperties": true
+}
+

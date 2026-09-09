@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "generation": 0,
+  "status": "PLANNED_NO_EXECUTION",
+  "purpose": "One-factor screening plan around exact execution representations only",
+  "baseline_experiment": "0000",
+  "science_delta_allowed": false,
+  "execution_allowed": false,
+  "design": "one-factor-at-a-time anchored to 0000; no cross-factor model variants are run by this scaffold",
+  "factors": [
+    {
+      "name": "attention_representation",
+      "question": "Can an exact strict-lower same-document Q=K schedule reduce paid attention work?",
+      "levels": [
+        "control_full_strict_lower_same_document",
+        "exact_blocked_strict_lower_same_document"
+      ],
+      "operator_class": "exact",
+      "science_change": false,
+      "prior_evidence": ["0001"],
+      "default_action": "do_not_rerun_until_explicitly_authorized"
+    },
+    {
+      "name": "qk_backward",
+      "question": "Does the exact tied-QK backward path avoid duplicate Q/K work without changing the VJP?",
+      "levels": ["tied_qk_exact_vjp"],
+      "operator_class": "exact",
+      "science_change": false,
+      "invariant": true,
+      "prior_evidence": ["hist-cell1-neuron-tiles-20260905", "hist-diagnostic-v4-attention-20260905"]
+    },
+    {
+      "name": "sm120_gemm_backend",
+      "question": "Can native SM120 GEMMs improve the exact projection path?",
+      "levels": ["reference_gemm_control", "native_sm120_gemm"],
+      "operator_class": "exact_execution_backend",
+      "science_change": false,
+      "prior_evidence": ["hist-cell1-neuron-tiles-20260905"]
+    },
+    {
+      "name": "dy_relu_epilogue_layout",
+      "question": "Can exact Dy + ReLU work stay in a GEMM epilogue/layout without changing values?",
+      "levels": ["materialized_baseline_layout", "exact_dy_relu_epilogue_layout"],
+      "operator_class": "exact_execution_backend",
+      "science_change": false,
+      "prior_evidence": ["hist-diagnostic-v4-attention-20260905"]
+    },
+    {
+      "name": "e_gemm",
+      "question": "Can the exact E projection use a faster native SM120 GEMM path?",
+      "levels": ["reference_e_gemm", "native_sm120_e_gemm"],
+      "operator_class": "exact_execution_backend",
+      "science_change": false,
+      "prior_evidence": ["hist-cell1-neuron-tiles-20260905"]
+    },
+    {
+      "name": "checkpoint_policy",
+      "question": "Which exact recomputation boundary lowers memory without changing the training graph?",
+      "levels": ["whole_level", "selective_exact_projection_or_qk_blocks"],
+      "operator_class": "exact_training_schedule",
+      "science_change": false,
+      "prior_evidence": ["0001", "hist-temporal-loom-chunked-oom-20260908"]
+    }
+  ],
+  "gates": {
+    "fp32_oracle": "must_pass",
+    "tied_qk_gradient": "must_pass",
+    "same_document_reset": "must_pass",
+    "real_b32_benchmark": "required_before_full_b64",
+    "full_b64_benchmark": "required_for_keep",
+    "target_real_tok_s": 90000.0,
+    "memory_regression_allowed": false
+  },
+  "screening_rows": [
+    {"row_id": "G0-00", "role": "baseline_anchor", "factors": "all baseline/control levels"},
+    {"row_id": "G0-01", "role": "single_factor", "factor": "attention_representation"},
+    {"row_id": "G0-02", "role": "single_factor", "factor": "sm120_gemm_backend"},
+    {"row_id": "G0-03", "role": "single_factor", "factor": "dy_relu_epilogue_layout"},
+    {"row_id": "G0-04", "role": "single_factor", "factor": "e_gemm"},
+    {"row_id": "G0-05", "role": "single_factor", "factor": "checkpoint_policy"},
+    {"row_id": "G0-06", "role": "invariant_audit", "factor": "qk_backward"}
+  ]
+}

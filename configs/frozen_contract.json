@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "project": "icrl-autoresearch",
+  "research_goal": "Exact-BDH performance research with Arm-A science frozen",
+  "target": {
+    "gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+    "sm": "sm_120",
+    "real_tokens_per_second": 90000.0,
+    "b64_real_tokens": 131072,
+    "target_b64_ms": 1456.3555555555556,
+    "throughput_definition": "real input tokens per wall-clock B64 optimizer update"
+  },
+  "canonical_source": {
+    "path": "vendor/canonical/icrl_reintegrated_bdh_baseline_v1.py",
+    "sha256": "947f8b33e740adede3e13382f8cb9e8e374d845de75e282bda5feb05c582f624",
+    "role": "source of truth; copied byte-for-byte from the user attachment"
+  },
+  "science": {
+    "arm": "A",
+    "paper": "arXiv:2509.26507 Appendix E / Eq. 4 / Eq. 8",
+    "official_bdh_commit": "2b0d7a45b058d4309c84a10e0768d541fe18bdc2",
+    "levels": 6,
+    "D": 256,
+    "H": 4,
+    "K_per_head": 8192,
+    "N": 32768,
+    "T": 2048,
+    "vocab": 8192,
+    "hidden": 1040,
+    "expected_parameters": 29958401,
+    "q_equals_k": true,
+    "symmetric_attention": true,
+    "strict_exclusive_causality": true,
+    "same_document_only": true,
+    "softmax": false,
+    "attention_scale": false,
+    "shared_v_across_heads": true,
+    "document_reset": "exact frozen provenance boundaries",
+    "rope": "document-local; theta=2^16; q=2 pair frequencies",
+    "stage1_coordinator": "Arm-A Cartesian",
+    "writer": "dense writer",
+    "model_changed": false
+  },
+  "data": {
+    "corpus_id": "phase_bdh_stage2_5b_v1",
+    "tokenizer_sha256": "9a05bca4c065d9952a01ee1e3f4b6e23e39200e1f33da65e5dad1819419f71c3",
+    "logical_replay_sha256": "c60bd7df4a8ef7329d20ec5b0f022f4579fca20c95657a90f79a2e9e67edb043",
+    "context_length": 2048,
+    "input_tokens_are_real_frozen_corpus": true
+  },
+  "training": {
+    "microbatch_B32": 32,
+    "global_objective": "B32 + B32 exact B64",
+    "micro_tokens": 65536,
+    "global_tokens": 131072,
+    "optimizer": "AdamW",
+    "betas": [0.9, 0.95],
+    "eps": 1e-08,
+    "weight_decay": 0.1,
+    "clip_norm": 1.0,
+    "peak_lr": 0.001,
+    "warmup_real_tokens": 10000000,
+    "initial_loss_gate": 9.077229499816895,
+    "seed": 1337
+  },
+  "allowed_change_class": "execution_representation_only",
+  "forbidden_changes": [
+    "model equations",
+    "Q/K untie",
+    "non-strict or cross-document attention",
+    "softmax or attention scaling",
+    "approximate operator",
+    "corpus, tokenizer, or replay order",
+    "optimizer or loss semantics",
+    "Arm-A coordinator/writer science"
+  ]
+}

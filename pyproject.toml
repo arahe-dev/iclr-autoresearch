@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "icrl-autoresearch"
+version = "0.1.0"
+description = "Evidence-first exact-BDH performance research infrastructure for SM120"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.scripts]
+icrl-doe = "icrl_autoresearch.doe:main"
+icrl-decide = "icrl_autoresearch.decisions:main"
+icrl-validate = "icrl_autoresearch.validation:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+

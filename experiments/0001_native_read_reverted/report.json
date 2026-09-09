@@ -1,0 +1,84 @@
+{
+  "schema_version": 1,
+  "experiment_id": "0001",
+  "name": "native_read_bthk_causal_prefix_blocks",
+  "status": "REVERTED_AT_READ_GATE",
+  "decision": "REVERT_READ_REPRESENTATION",
+  "provenance": {
+    "canonical_source": "vendor/canonical/icrl_reintegrated_bdh_baseline_v1.py",
+    "canonical_source_sha256": "947f8b33e740adede3e13382f8cb9e8e374d845de75e282bda5feb05c582f624",
+    "parent_experiment": "0000",
+    "source_attachment": "C:/Users/arahe/.codex/attachments/7d6b8863-3e26-42bf-8e9a-a11404d13d8c/pasted-text.txt",
+    "external_report": "/content/drive/Shareddrives/ICLR PHASE BDH/phase_bdh/experiments/bdh_native_read_v1/20260909T120043_696057Z/report.json"
+  },
+  "hardware": {
+    "gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+    "sm": "sm_120",
+    "vram_GiB": 94.97,
+    "pytorch": "2.11.0+cu128",
+    "cuda": "12.8"
+  },
+  "science": {
+    "model_changed": false,
+    "arm": "A",
+    "q_equals_k": true,
+    "strict_exclusive_same_document_attention": true,
+    "softmax": false,
+    "attention_scale": false,
+    "write_path": "unchanged frozen baseline",
+    "candidate_change_class": "physical read representation only"
+  },
+  "candidate": {
+    "physical_layout": "[B,T,H,K]",
+    "projection": "wide Dx GEMM",
+    "attention": "exact causal prefix blocks",
+    "block": 256,
+    "checkpoint": "selective checkpointing for candidate QK block matmuls"
+  },
+  "correctness": {
+    "corpus": "PASS",
+    "forward_rel_l2": 0.0,
+    "forward_max_abs": 0.0,
+    "dV_rel_l2": 1.3879606797218003e-07,
+    "dV_max_abs": 2.9802322387695312e-08,
+    "dDx_rel_l2": 1.7357184844968288e-07,
+    "dDx_max_abs": 3.725290298461914e-09,
+    "fp32_gradient_gate": "PASS"
+  },
+  "benchmarks": {
+    "B32_read_gate": {
+      "status": "PASS_MEASUREMENT",
+      "control": {
+        "forward_ms": 59.82563018798828,
+        "backward_ms": 100.42364501953125,
+        "fb_ms": 160.34422302246094,
+        "peak_GiB": 16.33253574371338
+      },
+      "candidate": {
+        "forward_ms": 69.95001220703125,
+        "backward_ms": 129.1663360595703,
+        "fb_ms": 199.0870361328125,
+        "peak_GiB": 29.09816074371338
+      },
+      "speedup_candidate_vs_control": 0.805376,
+      "promote_gate": 1.1,
+      "promote_gate_pass": false
+    },
+    "B64": {
+      "status": "NOT_RUN",
+      "reason": "The predeclared B32 read gate failed; no full-model minutes were spent."
+    }
+  },
+  "gates": {
+    "fp32_oracle": "PASS",
+    "real_B32_read_gate": "FAIL",
+    "full_B64": "NOT_RUN",
+    "memory_regression": "FAIL"
+  },
+  "decision_record": {
+    "keep": false,
+    "revert": true,
+    "reason": "199.09 ms vs 160.34 ms control (0.805x) and 29.1 vs 16.3 GiB; exact candidate failed the 1.10x promote gate.",
+    "search_space_killed": "unfused compiler-visible [B,T,H,K] wide-Dx plus causal prefix blocks at block 256"
+  }
+}

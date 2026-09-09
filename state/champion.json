@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "champion_experiment": "0000",
+  "champion_branch": "codex/champion/0000-validated-bdh-baseline",
+  "champion_status": "KEEP_BASELINE",
+  "source_of_truth": "experiments/0000_validated_bdh_baseline/report.json",
+  "target_real_tok_s": 90000.0,
+  "policy": {
+    "only_keep_after": ["correctness_pass", "B32_gate_pass", "B64_gate_pass", "no_memory_regression"],
+    "revert_on": ["correctness_fail", "declared_gate_fail", "OOM", "compile_failure", "memory_regression"],
+    "candidate_branches_must_start_from": "champion_branch",
+    "revert_is_git_recoverable": true
+  },
+  "last_update": {
+    "experiment_id": "0001",
+    "decision": "REVERT_READ_REPRESENTATION",
+    "branch_created": false
+  }
+}

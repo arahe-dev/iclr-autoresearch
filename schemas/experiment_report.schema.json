@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://icrl-autoresearch.local/schemas/experiment_report.schema.json",
+  "title": "ICRL autoresearch experiment report",
+  "type": "object",
+  "required": ["schema_version", "experiment_id", "status", "decision", "provenance", "science"],
+  "properties": {
+    "schema_version": {"type": "integer", "const": 1},
+    "experiment_id": {"type": "string", "pattern": "^[0-9]{4}$"},
+    "name": {"type": "string"},
+    "status": {"type": "string"},
+    "decision": {"type": "string"},
+    "provenance": {"type": "object"},
+    "science": {"type": "object", "required": ["model_changed"]},
+    "hardware": {"type": "object"},
+    "correctness": {"type": "object"},
+    "benchmarks": {"type": "object"},
+    "gates": {"type": "object"},
+    "metrics": {"type": "object"},
+    "decision_record": {"type": "object"}
+  },
+  "additionalProperties": true
+}
+

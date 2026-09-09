@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "experiment_id": "0001",
+  "name": "native_read_bthk_causal_prefix_blocks",
+  "generation": 0,
+  "role": "historical negative result",
+  "status": "REVERTED_AT_READ_GATE",
+  "science_delta": false,
+  "parent": "0000",
+  "canonical_source": "vendor/canonical/icrl_reintegrated_bdh_baseline_v1.py",
+  "source_attachment": "C:/Users/arahe/.codex/attachments/7d6b8863-3e26-42bf-8e9a-a11404d13d8c/pasted-text.txt",
+  "external_report": "/content/drive/Shareddrives/ICLR PHASE BDH/phase_bdh/experiments/bdh_native_read_v1/20260909T120043_696057Z/report.json",
+  "branch": null,
+  "promotion": "blocked_before_full_model"
+}
+

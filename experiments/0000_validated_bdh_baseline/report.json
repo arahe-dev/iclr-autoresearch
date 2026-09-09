@@ -1,0 +1,79 @@
+{
+  "schema_version": 1,
+  "experiment_id": "0000",
+  "name": "validated_bdh_baseline",
+  "status": "BASELINE_REESTABLISHED",
+  "decision": "KEEP_BASELINE",
+  "provenance": {
+    "kind": "imported_validated_measurement",
+    "canonical_source": "vendor/canonical/icrl_reintegrated_bdh_baseline_v1.py",
+    "canonical_source_sha256": "947f8b33e740adede3e13382f8cb9e8e374d845de75e282bda5feb05c582f624",
+    "parent_report": "/content/drive/Shareddrives/ICLR PHASE BDH/phase_bdh/experiments/bdh_reintegrated_baseline_v1/20260909T105025_338872Z/report.json",
+    "import_note": "Validated ~39.7k real tok/s baseline supplied in the task context; no rerun performed by the scaffold."
+  },
+  "hardware": {
+    "gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+    "sm": "sm_120",
+    "vram_GiB": 94.97,
+    "pytorch": "2.11.0+cu128",
+    "cuda": "12.8"
+  },
+  "science": {
+    "model_changed": false,
+    "arm": "A",
+    "q_equals_k": true,
+    "strict_exclusive_same_document_attention": true,
+    "softmax": false,
+    "attention_scale": false,
+    "document_reset": "exact frozen provenance",
+    "coordinator": "Cartesian",
+    "writer": "dense",
+    "checkpoint": "whole level"
+  },
+  "correctness": {
+    "status": "PASS",
+    "source_report_status": "BASELINE_REESTABLISHED",
+    "parameter_count": 29958401,
+    "initial_loss_gate": "PASS"
+  },
+  "benchmarks": {
+    "B32": {
+      "status": "NOT_REPORTED_IN_IMPORTED_BASELINE",
+      "real_input_tokens": 65536,
+      "note": "The B32 fixture is defined in the protocol; no full B32 baseline number is invented here."
+    },
+    "B64": {
+      "status": "PASS",
+      "real_input_tokens": 131072,
+      "median_update_ms": 3303.47,
+      "real_input_tok_s": 39673.339,
+      "reported_tok_s": 39700.0,
+      "target_tok_s": 90000.0,
+      "target_b64_ms": 1456.3555555555556,
+      "peak_GiB": null
+    },
+    "B32_read_micro_control_from_0001": {
+      "status": "PASS_CONTEXT_ONLY",
+      "forward_ms": 59.82563018798828,
+      "backward_ms": 100.42364501953125,
+      "fb_ms": 160.34422302246094,
+      "peak_GiB": 16.33253574371338,
+      "note": "Read microbenchmark only; not a full B32 training throughput number."
+    }
+  },
+  "gates": {
+    "frozen_contract": "PASS",
+    "baseline_validation": "PASS",
+    "90k_target": "NOT_MET_BY_BASELINE"
+  },
+  "metrics": {
+    "speedup_required_vs_0000_for_90k": 2.267850,
+    "b64_ms_reduction_required": 1847.1144444444444
+  },
+  "decision_record": {
+    "keep": true,
+    "revert": false,
+    "is_initial_champion": true,
+    "reason": "Imported validated control; candidate work starts from this exact baseline."
+  }
+}

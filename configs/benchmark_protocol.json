@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "hardware_contract": {"gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition", "sm": "sm_120"},
+  "warmup_policy": {"warmups": 2, "timed_repetitions": 5, "exclude_warmups": true},
+  "benchmarks": {
+    "B32": {
+      "batch": 32,
+      "sequence_length": 2048,
+      "real_input_tokens": 65536,
+      "role": "one production microbatch",
+      "measurement": "forward_backward_wall_ms and real_input_tok_s"
+    },
+    "B64": {
+      "microbatches": ["B32", "B32"],
+      "global_real_input_tokens": 131072,
+      "role": "exact optimizer update",
+      "measurement": "two microbatches plus backward, optimizer step, and synchronization"
+    }
+  },
+  "correctness_before_timing": [
+    "independent FP32/FP64 oracle",
+    "exact strict-exclusive causal mask",
+    "same-document reset",
+    "tied-QK backward",
+    "valid-target accounting",
+    "initial-loss and parameter-count contract"
+  ],
+  "throughput": {
+    "formula": "real_input_tokens / (wall_ms / 1000)",
+    "target_real_tok_s": 90000.0,
+    "target_b64_ms": 1456.3555555555556
+  },
+  "prohibitions": [
+    "do not count compile time as steady-state throughput",
+    "do not sum overlapping component timings as model throughput",
+    "do not substitute valid-target tokens for real input tokens",
+    "do not promote a read microbenchmark without the declared gate",
+    "do not run new model changes from the Generation-0 scaffold"
+  ]
+}
+

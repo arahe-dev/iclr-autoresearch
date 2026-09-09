@@ -1,0 +1,5 @@
+vendor/canonical/icrl_reintegrated_bdh_baseline_v1.py -text
+vendor/canonical/SOURCE_MANIFEST.json text eol=lf
+*.json text eol=lf
+*.jsonl text eol=lf
+*.md text eol=lf

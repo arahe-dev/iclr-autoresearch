@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "experiment_id": "0000",
+  "name": "validated_bdh_baseline",
+  "generation": -1,
+  "role": "frozen oracle/baseline and initial champion",
+  "status": "BASELINE_REESTABLISHED",
+  "science_delta": false,
+  "canonical_source": "vendor/canonical/icrl_reintegrated_bdh_baseline_v1.py",
+  "contract": "configs/frozen_contract.json",
+  "benchmark_protocol": "configs/benchmark_protocol.json",
+  "parent": null,
+  "branch": "codex/champion/0000-validated-bdh-baseline",
+  "keep_revert_policy": "baseline is retained; candidates must pass correctness and declared throughput/memory gates"
+}
