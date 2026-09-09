@@ -14,6 +14,8 @@ from __future__ import annotations
 
 import ast
 import hashlib
+import importlib
+import importlib.util
 import json
 import math
 import os
@@ -51,6 +53,8 @@ FACTOR_NAMES = (
     "checkpoint_policy",
 )
 
+CANONICAL_MODULE_NAME = "icrl_canonical_0000_definitions"
+
 
 def _sha256(path: Path) -> str:
     digest = hashlib.sha256()
@@ -60,14 +64,57 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+class _CanonicalDefinitionLoader:
+    """Import-loader that executes only the safe canonical definitions."""
+
+    def __init__(self, source_path: Path, safe_assignments: set[str]) -> None:
+        self.source_path = source_path
+        self.safe_assignments = safe_assignments
+
+    def create_module(self, spec: Any) -> None:
+        return None
+
+    def exec_module(self, module: Any) -> None:
+        tree = ast.parse(
+            self.source_path.read_text(encoding="utf-8"),
+            filename=str(self.source_path),
+        )
+        body: list[ast.stmt] = []
+        for node in tree.body:
+            if isinstance(node, (ast.Import, ast.ImportFrom)):
+                if isinstance(node, ast.ImportFrom) and node.module == "google.colab":
+                    continue
+                body.append(node)
+                continue
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                if node.name not in {"main", "save_report", "latest_parent_baseline"}:
+                    body.append(node)
+                continue
+            if isinstance(node, (ast.Assign, ast.AnnAssign)):
+                names: set[str] = set()
+                targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+                for target in targets:
+                    if isinstance(target, ast.Name):
+                        names.add(target.id)
+                if names & self.safe_assignments:
+                    body.append(node)
+
+        filtered_module = ast.Module(body=body, type_ignores=[])
+        ast.fix_missing_locations(filtered_module)
+        exec(
+            compile(filtered_module, str(self.source_path), "exec"),
+            module.__dict__,
+            module.__dict__,
+        )
+
+
 def _canonical_namespace() -> dict[str, Any]:
     """Load canonical definitions without executing its Colab experiment main."""
     source_path = REPO_ROOT / CANONICAL_RELATIVE
     if _sha256(source_path) != CANONICAL_SHA256:
         raise RuntimeError("canonical 0000 source hash mismatch")
-    tree = ast.parse(source_path.read_text(encoding="utf-8"), filename=str(source_path))
 
-    # These are immutable constants used by the canonical functions.  Runtime
+    # These are immutable constants used by the canonical functions. Runtime
     # objects such as ROOT, DEVICE, CORPUS, OUTPUT, and REPORT are supplied by
     # this runner after definition loading.
     safe_assignments = {
@@ -80,30 +127,28 @@ def _canonical_namespace() -> dict[str, Any]:
         "REPLAY_SHA", "OFFICIAL_BDH_COMMIT", "OFFICIAL_BDH_SHA256", "OFFICIAL_BDH_BLOB_SHA1",
         "HISTORICAL_ACCEPTED_MS", "MICRO_TOKENS", "GLOBAL_TOKENS", "_BMM", "_MATMUL",
     }
-    body: list[ast.stmt] = []
-    for node in tree.body:
-        if isinstance(node, (ast.Import, ast.ImportFrom)):
-            if isinstance(node, ast.ImportFrom) and node.module == "google.colab":
-                continue
-            body.append(node)
-            continue
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
-            if node.name not in {"main", "save_report", "latest_parent_baseline"}:
-                body.append(node)
-            continue
-        if isinstance(node, (ast.Assign, ast.AnnAssign)):
-            names: set[str] = set()
-            targets = node.targets if isinstance(node, ast.Assign) else [node.target]
-            for target in targets:
-                if isinstance(target, ast.Name):
-                    names.add(target.id)
-            if names & safe_assignments:
-                body.append(node)
 
-    namespace: dict[str, Any] = {"__name__": "icrl_canonical_0000_definitions"}
-    module = ast.Module(body=body, type_ignores=[])
-    exec(compile(module, str(source_path), "exec"), namespace, namespace)
-    return namespace
+    loader = _CanonicalDefinitionLoader(source_path, safe_assignments)
+    spec = importlib.util.spec_from_file_location(
+        CANONICAL_MODULE_NAME,
+        source_path,
+        loader=loader,
+    )
+    if spec is None or spec.loader is None:
+        raise RuntimeError("could not create canonical module spec")
+
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    try:
+        spec.loader.exec_module(module)
+    except Exception:
+        sys.modules.pop(spec.name, None)
+        raise
+
+    if importlib.import_module(spec.name) is not module:
+        sys.modules.pop(spec.name, None)
+        raise RuntimeError("canonical module is not importable as the loaded module")
+    return module.__dict__
 
 
 CANONICAL = _canonical_namespace()
