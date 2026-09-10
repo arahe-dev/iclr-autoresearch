@@ -30,8 +30,10 @@ The reusable infrastructure lives under `src/icrl_autoresearch/`:
 - `git_ops.py`: candidate/champion branch naming and explicit promotion plans.
 - `generation0.py`: L8 plus full-foldover matrix, control verification, predicted effects, interaction aliases, randomized run order, and per-arm patch specs.
 - `results.py`: append-only oracle-gated JSONL result writer.
-- `gpu_harness.py`: explicit SM120 candidate-worktree execution adapter; champion mutation is refused.
-- `scripts/run_generation0_sm120.py`: strict target-host launcher with RTX PRO 6000/SM120 checks, streamed transcript, and fail-closed oracle/memory gates.
+- `gpu_harness.py`: fail-closed SM120 supervisor; it owns the campaign lock, physical-GPU lock, ordered resume state, child process groups, preflight, attempt log, and ledger admission. It never imports PyTorch.
+- `processes.py` and `gpu.py`: durable file locks, process-tree cleanup, timeout/interrupt handling, torch-free NVIDIA discovery, and UUID-bound worker environments.
+- `scripts/run_generation0_sm120.py`: stable target-host entrypoint delegating to the same supervisor used by `run_generation0.py`.
+- `scripts/colab_generation0.py`: one self-contained Colab bootstrap pinned to a full harness SHA. It creates isolated planning/candidate worktrees, uses a short-lived askpass helper when authentication is needed, and persists campaign state, attempts, logs, and artifacts on Drive.
 
 ## Safe checks
 
@@ -64,4 +66,4 @@ python scripts/run_generation0_sm120.py --execute \
   --command-template 'python candidate_runner.py --run-id {run_id} --arm-id {arm_id}'
 ```
 
-The launcher writes the append-only ledger to `results/generation0.jsonl` and tees all runner output to `results/generation0_console.log`. It requires the exact RTX PRO 6000 SM120 environment and leaves the champion immutable.
+The launcher writes the append-only ledger to `results/generation0.jsonl` and tees all runner output to `results/generation0_console.log`. It requires the exact RTX PRO 6000 SM120 environment and leaves the champion immutable. Each slot gets a fresh worker process; the next slot is not admitted until the worker exits, the GPU has returned to its baseline, and the result has passed every oracle/protocol/provenance gate. A failure writes an attempt-scoped artifact and sticky state; resume requires `--retry-failed` explicitly and never skips the failed ordered slot.

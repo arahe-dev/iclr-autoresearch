@@ -13,6 +13,7 @@ sys.path.insert(0, str(ROOT / "src"))
 from icrl_autoresearch.gpu_harness import (  # noqa: E402
     _active_attempts,
     _command_argv,
+    _corpus_fingerprint,
     _validate_worker_payload,
     _run_attempt,
 )
@@ -97,7 +98,14 @@ class HarnessSupervisorTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             _validate_worker_payload(payload, context, candidate, gpu, "attempt")
 
+    def test_corpus_fingerprint_marks_missing_required_files_incomplete(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="icrl-corpus-") as directory:
+            root = Path(directory)
+            (root / "FROZEN.json").write_text("{}\n", encoding="utf-8")
+            fingerprint = _corpus_fingerprint(root)
+            self.assertEqual(fingerprint["status"], "INCOMPLETE")
+            self.assertEqual(len(fingerprint["required_files"]), 3)
+
 
 if __name__ == "__main__":
     unittest.main()
-

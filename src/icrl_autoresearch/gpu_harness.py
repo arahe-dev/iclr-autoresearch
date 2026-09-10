@@ -245,12 +245,15 @@ def _corpus_fingerprint(corpus_root: Path | None) -> dict[str, Any]:
         root / "train" / "shard_000000.provenance.parquet",
     ]
     result["required_files"] = []
+    all_required_files_present = True
     for path in required:
         entry: dict[str, Any] = {"path": str(path.relative_to(root)), "exists": path.exists()}
-        if path.exists():
+        all_required_files_present = all_required_files_present and path.is_file()
+        if path.is_file():
             stat = path.stat()
             entry.update({"size": stat.st_size, "sha256": _sha256_file(path)})
         result["required_files"].append(entry)
+    result["status"] = "RESOLVED" if all_required_files_present else "INCOMPLETE"
     result["fingerprint"] = hashlib.sha256(canonical_json(result).encode("utf-8")).hexdigest()
     return result
 
@@ -324,6 +327,7 @@ def _manifest_identity(
     corpus: dict[str, Any],
     timeout_seconds: float,
     preflight: dict[str, Any] | None,
+    ledger: Path,
 ) -> dict[str, Any]:
     identity: dict[str, Any] = {
         "plan_id": plan["plan_id"],
@@ -340,6 +344,7 @@ def _manifest_identity(
         },
         "corpus": corpus,
         "command_template": command_template,
+        "ledger_path": str(ledger.resolve()),
         "benchmark_limits": {
             "microbatch": 32,
             "warmups": WARMUPS,
@@ -654,9 +659,13 @@ def _validate_preflight(
     limits = payload.get("benchmark_limits")
     if not isinstance(limits, dict) or limits.get("microbatch") != 32 or limits.get("warmups") != WARMUPS or limits.get("timed_repetitions") != REPETITIONS:
         raise ValueError("candidate preflight benchmark limits disagree with the frozen protocol")
-    if corpus.get("status") == "RESOLVED":
-        child_fingerprint = payload.get("corpus", {}).get("fingerprint") if isinstance(payload.get("corpus"), dict) else None
-        if child_fingerprint and child_fingerprint != corpus.get("fingerprint"):
+    if corpus.get("root") is not None:
+        if corpus.get("status") != "RESOLVED":
+            raise ValueError("campaign corpus is incomplete; refusing to launch a model worker")
+        child_corpus = payload.get("corpus")
+        if not isinstance(child_corpus, dict) or child_corpus.get("status") != "RESOLVED":
+            raise ValueError("candidate preflight did not produce a resolved corpus fingerprint")
+        if child_corpus.get("fingerprint") != corpus.get("fingerprint"):
             raise ValueError("candidate preflight corpus fingerprint disagrees with the campaign manifest")
     return payload
 
@@ -746,54 +755,58 @@ def execute_plan(
 
     candidate = assert_candidate_worktree(candidate_root)
     corpus = _corpus_fingerprint(corpus_root)
-    records = read_ledger(ledger)
-    manifest = _load_json_object(paths["manifest"], "campaign manifest")
-    state = _load_json_object(paths["state"], "campaign state")
-    if records and manifest is None:
-        raise ValueError("non-empty ledger has no campaign manifest; refusing to mix historical results")
-    if state is not None and manifest is None and not (
-        state.get("status") == "FAILED" and state.get("failed_run_id") == "PREFLIGHT"
-    ):
-        raise ValueError("campaign state exists without its manifest")
-    _validate_resume(selected_plan, records, candidate, state)
-    events = _read_events(paths["attempts"])
-    if manifest is None and events and not (
-        state is not None and state.get("status") == "FAILED" and state.get("failed_run_id") == "PREFLIGHT"
-    ):
-        raise ValueError("historical attempt log has no compatible campaign manifest")
-    active = _active_attempts(events)
-    if active and not retry_failed:
-        raise RuntimeError(
-            "an earlier attempt has no durable end event; pass --retry-failed to explicitly recover it: "
-            f"{sorted(active)}"
-        )
-    if active and retry_failed:
-        for attempt_id, begin in active.items():
-            _append_event(paths["attempts"], {
-                "event": "recovered",
-                "attempt_id": attempt_id,
-                "run_id": begin.get("run_id"),
-                "stage": begin.get("stage"),
-                "status": "RECOVERED_INTERRUPTED",
-                "ended_at": _utcnow(),
-            })
-
-    if state is not None and state.get("status") == "FAILED" and not retry_failed:
-        raise RuntimeError(
-            f"campaign is sticky-failed at {state.get('failed_run_id')}; "
-            "pass --retry-failed or start a new campaign directory"
-        )
-    if state is not None and state.get("status") == "FAILED" and state.get("failed_run_id") != "PREFLIGHT":
-        next_run_id = selected_plan["run_order"][len(records)]["run_id"] if len(records) < len(selected_plan["run_order"]) else None
-        if state.get("failed_run_id") != next_run_id:
-            raise ValueError("campaign state names a failed run that is not the next ordered slot")
-
     gpu, assert_idle, _unused, await_release, lock_path = _fake_or_real_gpu(gpu_info, gpu_uuid, gpu_index)
     # The campaign lock is acquired before the physical-GPU lock so two
     # invocations of the same campaign cannot deadlock while competing for it.
     with interrupt_on_signal(), FileLock(paths["campaign_lock"], {"kind": "generation0-campaign"}), FileLock(
         lock_path, {"kind": "generation0-gpu", "gpu_uuid": gpu["uuid"]}
     ) as gpu_lock:
+        # Read mutable campaign state only after taking the campaign lock. A
+        # second notebook invocation may have been waiting here while the
+        # first one appended a result; using pre-lock snapshots would rerun
+        # that slot and turn a safe resume into an avoidable failure.
+        records = read_ledger(ledger)
+        manifest = _load_json_object(paths["manifest"], "campaign manifest")
+        state = _load_json_object(paths["state"], "campaign state")
+        if records and manifest is None:
+            raise ValueError("non-empty ledger has no campaign manifest; refusing to mix historical results")
+        if state is not None and manifest is None and not (
+            state.get("status") == "FAILED" and state.get("failed_run_id") == "PREFLIGHT"
+        ):
+            raise ValueError("campaign state exists without its manifest")
+        _validate_resume(selected_plan, records, candidate, state)
+        events = _read_events(paths["attempts"])
+        if manifest is None and events and not (
+            state is not None and state.get("status") == "FAILED" and state.get("failed_run_id") == "PREFLIGHT"
+        ):
+            raise ValueError("historical attempt log has no compatible campaign manifest")
+        active = _active_attempts(events)
+        if active and not retry_failed:
+            raise RuntimeError(
+                "an earlier attempt has no durable end event; pass --retry-failed to explicitly recover it: "
+                f"{sorted(active)}"
+            )
+        if active and retry_failed:
+            for attempt_id, begin in active.items():
+                _append_event(paths["attempts"], {
+                    "event": "recovered",
+                    "attempt_id": attempt_id,
+                    "run_id": begin.get("run_id"),
+                    "stage": begin.get("stage"),
+                    "status": "RECOVERED_INTERRUPTED",
+                    "ended_at": _utcnow(),
+                })
+
+        if state is not None and state.get("status") == "FAILED" and not retry_failed:
+            raise RuntimeError(
+                f"campaign is sticky-failed at {state.get('failed_run_id')}; "
+                "pass --retry-failed or start a new campaign directory"
+            )
+        if state is not None and state.get("status") == "FAILED" and state.get("failed_run_id") != "PREFLIGHT":
+            next_run_id = selected_plan["run_order"][len(records)]["run_id"] if len(records) < len(selected_plan["run_order"]) else None
+            if state.get("failed_run_id") != next_run_id:
+                raise ValueError("campaign state names a failed run that is not the next ordered slot")
+
         assert_idle()
         environment = worker_environment(
             GpuSnapshot(
@@ -879,6 +892,7 @@ def execute_plan(
                     corpus,
                     timeout_seconds,
                     preflight_payload,
+                    ledger,
                 )
                 if manifest is not None:
                     if manifest.get("schema_version") != MANIFEST_SCHEMA_VERSION or manifest.get("identity") != expected_identity:
