@@ -66,6 +66,18 @@ def git(cwd: Path, *arguments: str, env: dict[str, str] | None = None) -> str:
     return run(["git", "-C", str(cwd), *arguments], env=env)
 
 
+def ref_contains_commit(cwd: Path, ref: str, expected_commit: str) -> bool:
+    """Accept a branch that contains the exact pin, even if it has later cell commits."""
+    try:
+        actual = git(cwd, "rev-parse", ref)
+        if actual == expected_commit:
+            return True
+        git(cwd, "merge-base", "--is-ancestor", expected_commit, actual)
+        return True
+    except RuntimeError:
+        return False
+
+
 def assert_clean_checkout(path: Path, expected_commit: str) -> None:
     if not path.is_dir() or not (path / ".git").exists():
         raise RuntimeError(f"expected existing Git checkout is missing: {path}")
@@ -219,8 +231,8 @@ def ensure_source_checkout() -> None:
         champion_ref = f"refs/remotes/origin/{CHAMPION_BRANCH}"
         needs_fetch = True
         try:
-            needs_fetch = git(REPO_STORE, "rev-parse", harness_ref) != HARNESS_COMMIT
-            needs_fetch = needs_fetch or git(REPO_STORE, "rev-parse", champion_ref) != CHAMPION_COMMIT
+            needs_fetch = not ref_contains_commit(REPO_STORE, harness_ref, HARNESS_COMMIT)
+            needs_fetch = needs_fetch or not ref_contains_commit(REPO_STORE, champion_ref, CHAMPION_COMMIT)
         except RuntimeError:
             needs_fetch = True
         if needs_fetch:
@@ -239,8 +251,8 @@ def ensure_source_checkout() -> None:
                 auth_env, helper = credentials_if_needed()
                 run(fetch, env=auth_env)
 
-        if git(REPO_STORE, "rev-parse", harness_ref) != HARNESS_COMMIT:
-            raise RuntimeError("remote harness branch is not the pinned commit")
+        if not ref_contains_commit(REPO_STORE, harness_ref, HARNESS_COMMIT):
+            raise RuntimeError("remote harness branch does not contain the pinned harness commit")
         if git(REPO_STORE, "rev-parse", champion_ref) != CHAMPION_COMMIT:
             raise RuntimeError("immutable champion ref is not the certified 40-character commit")
         try:
