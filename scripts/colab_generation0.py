@@ -12,15 +12,18 @@ campaign or silently retries a failed slot.
 # or imports from an earlier notebook cell.
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from getpass import getpass
 import hashlib
 import json
 import os
 from pathlib import Path
+import shlex
 import signal
 import shutil
 import stat
 import subprocess
+import sys
 import tempfile
 
 
@@ -45,6 +48,10 @@ CAMPAIGN_ROOT = DRIVE_ROOT / "experiments/generation0" / f"iclr-g0-{HARNESS_COMM
 RETRY_FAILED = False
 GPU_UUID: str | None = None
 GPU_INDEX: int | None = None
+
+
+def _utcnow() -> str:
+    return datetime.now(timezone.utc).isoformat()
 
 
 def run(command: list[str], *, cwd: Path | None = None, env: dict[str, str] | None = None) -> str:
@@ -320,20 +327,58 @@ def stop_process_group(process: subprocess.Popen[object]) -> None:
         process.wait(timeout=10)
 
 
-def run_supervisor(command: list[str], *, cwd: Path, env: dict[str, str]) -> None:
+def run_supervisor(command: list[str], *, cwd: Path, env: dict[str, str], log_path: Path) -> None:
+    """Expose child failures even before the harness opens its own console log."""
     options: dict[str, object] = {}
     if os.name == "posix":
         options["start_new_session"] = True
     else:
         options["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
-    process = subprocess.Popen(command, cwd=str(cwd), env=env, **options)
-    try:
-        returncode = process.wait()
-    except KeyboardInterrupt:
-        stop_process_group(process)
-        raise
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    with log_path.open("a", encoding="utf-8", buffering=1) as transcript:
+        transcript.write(f"\n=== Colab supervisor {_utcnow()} ===\n")
+        print(f"Supervisor transcript (append-only): {log_path}", flush=True)
+        try:
+            process = subprocess.Popen(
+                command,
+                cwd=str(cwd),
+                env=env,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                bufsize=1,
+                **options,
+            )
+        except OSError as exc:
+            message = f"Generation-0 supervisor could not start: {exc}"
+            transcript.write(message + "\n")
+            raise RuntimeError(f"{message}. Supervisor transcript: {log_path}") from exc
+        output_tail: list[str] = []
+        try:
+            assert process.stdout is not None
+            for line in process.stdout:
+                transcript.write(line)
+                output_tail.append(line)
+                if len(output_tail) > 200:
+                    del output_tail[0]
+                print(line, end="", flush=True)
+            returncode = process.wait()
+        except BaseException:
+            # A notebook output or Drive write failure must also stop execution.
+            stop_process_group(process)
+            raise
+        finally:
+            if process.stdout is not None:
+                process.stdout.close()
+        transcript.write(f"\n=== Supervisor exit code {returncode} at {_utcnow()} ===\n")
     if returncode:
-        raise RuntimeError(f"Generation-0 supervisor stopped fail-closed with exit code {returncode}")
+        tail = "".join(output_tail).strip() or "(supervisor emitted no output)"
+        raise RuntimeError(
+            "Generation-0 supervisor stopped fail-closed with exit code "
+            f"{returncode}. Full supervisor transcript: {log_path}\n{tail}"
+        )
 
 
 def main() -> None:
@@ -351,9 +396,11 @@ def main() -> None:
     ensure_source_checkout()
     assert_frozen_corpus(PLANNING_ROOT)
     CAMPAIGN_ROOT.mkdir(parents=True, exist_ok=True)
-    command_template = f"{shutil.which('python3') or '/usr/bin/python3'} -u scripts/generation0_candidate_runner.py"
+    # Use the notebook runtime, including its installed packages, for both children.
+    command_template = shlex.join([sys.executable, "-u", "scripts/generation0_candidate_runner.py"])
     supervisor = [
-        shutil.which("python3") or "/usr/bin/python3",
+        sys.executable,
+        "-u",
         str(PLANNING_ROOT / "scripts/run_generation0.py"),
         "--execute",
         "--candidate-root", str(CANDIDATE_ROOT),
@@ -374,6 +421,7 @@ def main() -> None:
         "plan_id": PLAN_ID,
         "harness_commit": HARNESS_COMMIT,
         "champion_commit": CHAMPION_COMMIT,
+        "python_executable": sys.executable,
         "candidate_root": str(CANDIDATE_ROOT),
         "campaign_root": str(CAMPAIGN_ROOT),
         "retry_failed": RETRY_FAILED,
@@ -384,7 +432,12 @@ def main() -> None:
         "ICRL_CORPUS_ROOT": str(CORPUS_ROOT),
         "PYTHONUNBUFFERED": "1",
     })
-    run_supervisor(supervisor, cwd=PLANNING_ROOT, env=environment)
+    run_supervisor(
+        supervisor,
+        cwd=PLANNING_ROOT,
+        env=environment,
+        log_path=CAMPAIGN_ROOT / "generation0_cell.log",
+    )
 
 
 main()

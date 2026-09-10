@@ -35,6 +35,8 @@ The reusable infrastructure lives under `src/icrl_autoresearch/`:
 - `scripts/run_generation0_sm120.py`: stable target-host entrypoint delegating to the same supervisor used by `run_generation0.py`.
 - `scripts/colab_generation0.py`: one self-contained Colab bootstrap pinned to a full harness SHA. It creates isolated planning/candidate worktrees, uses a short-lived askpass helper when authentication is needed, and persists campaign state, attempts, logs, and artifacts on Drive.
 
+For the Colab diagnostic repair, replace the entire old cell with the current `scripts/colab_generation0.py`. Fetching newer repository commits does not update Python functions already pasted into a notebook. The cell uses the notebook's Python interpreter for both the supervisor and candidate workers. It streams combined supervisor stdout/stderr into notebook output and appends it to `generation0_cell.log` in the existing Drive campaign directory, including failures before the harness opens `generation0_console.log`. Nonzero exits still stop fail-closed and include the last 200 output lines and transcript path in the notebook exception. The runtime harness remains pinned to `0ce16e9922b2766df24698c96bf5eac34d5eb2b4`; existing campaign evidence and explicit failed-slot retry requirements are preserved.
+
 ## Safe checks
 
 ```powershell
