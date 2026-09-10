@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import importlib
 import importlib.util
+import subprocess
 import sys
+import textwrap
 import unittest
 from pathlib import Path
 
@@ -13,6 +15,32 @@ RUNNER_PATH = ROOT / "scripts" / "generation0_candidate_runner.py"
 
 def _torch_available() -> bool:
     return importlib.util.find_spec("torch") is not None
+
+
+class ScriptImportTests(unittest.TestCase):
+    def test_cprofile_import_with_runner_script_directory_first(self) -> None:
+        # A fresh process matters: importing cProfile earlier in the test
+        # process would hide the collision seen by the standalone GPU runner.
+        probe = textwrap.dedent("""
+            from pathlib import Path
+            import sys
+            import sysconfig
+            sys.path.insert(0, sys.argv[1])
+            import cProfile
+            import profile
+            assert Path(profile.__file__).resolve() == (
+                Path(sysconfig.get_path("stdlib")) / "profile.py"
+            ).resolve(), profile.__file__
+            assert callable(profile.run)
+            cProfile.Profile().runcall(lambda: sum(range(4)))
+        """)
+        result = subprocess.run(
+            [sys.executable, "-c", probe, str(RUNNER_PATH.parent)],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
 
 @unittest.skipUnless(

@@ -1,3 +1,5 @@
+"""Profiler CLI; named to avoid shadowing Python's standard-library profile."""
+
 from pathlib import Path
 import sys
 
