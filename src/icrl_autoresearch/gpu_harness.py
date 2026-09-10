@@ -1,20 +1,27 @@
-"""Explicit GPU execution adapter for the Generation-0 treatment plan.
+"""Fail-closed, single-GPU supervisor for the Generation-0 campaign.
 
-The harness never edits source or creates/promotes champion branches. It runs a
-user-supplied command in a separate candidate worktree, requires the target
-SM120 GPU, requires an oracle-passing JSON result, and appends only validated
-records to the Generation-0 ledger.
+The supervisor owns ordering, provenance, process lifetime, GPU ownership,
+resume state, and append-only result admission.  It intentionally never
+imports torch.  CUDA and the exact model/treatment gates live in the child
+candidate runner, which is launched as a fresh process for every slot.
 """
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
+import hashlib
 import json
+import math
 import os
-import subprocess
 from pathlib import Path
-from typing import Any
+import re
+import shlex
+import subprocess
+import traceback
+import uuid
+from typing import Any, Callable, Iterable
 
-from .contract import REPO_ROOT, source_sha256
+from .contract import REPO_ROOT, canonical_json, contract_sha256, source_sha256
 from .generation0 import (
     BASE_COMMIT,
     CANONICAL_SOURCE,
@@ -23,7 +30,32 @@ from .generation0 import (
     assert_control_treatment,
     build_plan,
 )
-from .results import append_result, existing_run_ids
+from .gpu import (
+    EXPECTED_GPU_NAME,
+    GpuSnapshot,
+    assert_idle_gpu,
+    gpu_lock_path,
+    select_target_gpu,
+    wait_gpu_released,
+    worker_environment,
+)
+from .processes import FileLock, ProcessResult, interrupt_on_signal, run_process
+from .results import append_result, read_ledger, validate_result
+
+
+PLAN_ID = "G0-L8-SM120-EXACT-B32"
+CHAMPION_COMMIT_FULL = "908b0b1438ba038d319adf97787aac08f213b590"
+MANIFEST_SCHEMA_VERSION = 2
+STATE_SCHEMA_VERSION = 1
+WARMUPS = 2
+REPETITIONS = 5
+DEFAULT_TIMEOUT_SECONDS = 60 * 60
+SHELL_METACHARS = set(";&|<>`$\n\r")
+FULL_SHA_RE = re.compile(r"^[0-9a-fA-F]{40}$")
+
+
+def _utcnow() -> str:
+    return datetime.now(timezone.utc).isoformat()
 
 
 def _git(candidate_root: Path, *args: str) -> str:
@@ -39,7 +71,7 @@ def _git(candidate_root: Path, *args: str) -> str:
 
 
 def assert_candidate_worktree(candidate_root: Path) -> dict[str, str]:
-    """Verify that execution is isolated from the immutable champion checkout."""
+    """Verify an immutable, clean, named candidate worktree."""
     candidate = candidate_root.resolve()
     if not candidate.is_dir():
         raise ValueError(f"candidate worktree does not exist: {candidate}")
@@ -56,36 +88,35 @@ def assert_candidate_worktree(candidate_root: Path) -> dict[str, str]:
         raise ValueError(f"champion branch is immutable and cannot be an execution target: {branch}")
     if not branch.startswith(("codex/experiment/", "codex/generation0/")):
         raise ValueError("candidate branch must use codex/experiment/ or codex/generation0/ prefix")
+    dirty = _git(candidate, "status", "--porcelain")
+    if dirty:
+        raise ValueError("candidate worktree must be clean and committed before execution")
+    try:
+        champion_commit = _git(candidate, "rev-parse", "--verify", CHAMPION_BRANCH)
+    except RuntimeError as exc:
+        raise ValueError("candidate repository does not contain the immutable champion ref") from exc
+    if champion_commit != CHAMPION_COMMIT_FULL:
+        raise ValueError("immutable champion ref does not resolve to the certified 40-character commit")
 
     source = candidate / CANONICAL_SOURCE
     if not source.exists() or source_sha256(source) != CANONICAL_SOURCE_SHA256:
         raise ValueError("candidate canonical source is not byte-equivalent to experiment 0000")
+    commit = _git(candidate, "rev-parse", "HEAD")
+    if not FULL_SHA_RE.fullmatch(commit):
+        raise ValueError(f"candidate HEAD is not a full Git SHA: {commit!r}")
     return {
         "candidate_root": str(candidate),
         "candidate_branch": branch,
-        "candidate_commit": _git(candidate, "rev-parse", "HEAD"),
+        "candidate_commit": commit,
+        "champion_commit": champion_commit,
         "base_commit": BASE_COMMIT,
         "canonical_source_sha256": CANONICAL_SOURCE_SHA256,
     }
 
 
 def assert_target_gpu() -> dict[str, Any]:
-    """Require an available SM120 GPU only on the explicit execution path."""
-    try:
-        import torch
-    except ImportError as exc:  # pragma: no cover - depends on execution host
-        raise RuntimeError("GPU execution requires PyTorch with CUDA support") from exc
-    if not torch.cuda.is_available():
-        raise RuntimeError("GPU execution requires torch.cuda.is_available()")
-    capability = tuple(torch.cuda.get_device_capability(0))
-    if capability != (12, 0):
-        raise RuntimeError(f"GPU execution requires sm_120; found sm_{capability[0]}{capability[1]}")
-    return {
-        "device": torch.cuda.get_device_name(0),
-        "sm": f"sm_{capability[0]}{capability[1]}",
-        "torch": torch.__version__,
-        "cuda": torch.version.cuda,
-    }
+    """Legacy-compatible torch-free target GPU check."""
+    return select_target_gpu().as_dict()
 
 
 def _arm_by_id(plan: dict[str, Any]) -> dict[str, dict[str, Any]]:
@@ -114,20 +145,53 @@ def run_context(plan: dict[str, Any], slot: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _format_command(template: str, context: dict[str, Any], candidate: dict[str, str]) -> str:
+def _format_command(template: str, context: dict[str, Any], candidate: dict[str, str], attempt_id: str | None = None) -> str:
     values = {
         "plan_id": context["plan_id"],
         "run_id": context["run_id"],
         "arm_id": context["arm_id"],
         "block_id": context["block_id"],
         "within_block_position": context["within_block_position"],
-        "candidate_root": candidate["candidate_root"],
+        # Forward slashes keep the argv template portable to Windows while
+        # remaining valid to Python and Git there.
+        "candidate_root": candidate["candidate_root"].replace("\\", "/"),
         "selected_levels_json": json.dumps(context["selected_levels"], sort_keys=True),
+        "attempt_id": attempt_id or "{attempt_id}",
     }
     try:
         return template.format(**values)
     except KeyError as exc:
         raise ValueError(f"unknown command-template placeholder: {exc.args[0]}") from exc
+
+
+def _command_argv(command: str) -> list[str]:
+    """Parse an argv-only command and reject shell composition."""
+    quote: str | None = None
+    escaped = False
+    for char in command:
+        if escaped:
+            escaped = False
+            continue
+        if char == "\\" and quote == '"':
+            escaped = True
+            continue
+        if char in {"'", '"'}:
+            if quote is None:
+                quote = char
+            elif quote == char:
+                quote = None
+            continue
+        if quote is None and char in SHELL_METACHARS:
+            raise ValueError("command-template may contain argv quoting only; shell operators are refused")
+    if quote is not None:
+        raise ValueError("command-template contains an unterminated quote")
+    try:
+        argv = shlex.split(command, posix=True)
+    except ValueError as exc:
+        raise ValueError(f"invalid argv command-template: {exc}") from exc
+    if not argv:
+        raise ValueError("command-template produced an empty argv")
+    return argv
 
 
 def _json_from_stdout(stdout: str) -> dict[str, Any]:
@@ -151,49 +215,242 @@ def _json_from_stdout(stdout: str) -> dict[str, Any]:
     return value
 
 
-def _run_slot(
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1 << 20), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _corpus_fingerprint(corpus_root: Path | None) -> dict[str, Any]:
+    if corpus_root is None:
+        configured = os.environ.get("ICRL_CORPUS_ROOT")
+        corpus_root = Path(configured).expanduser().resolve() if configured else None
+    if corpus_root is None:
+        return {"status": "UNRESOLVED", "root": None}
+    root = corpus_root.resolve()
+    frozen = root / "FROZEN.json"
+    result: dict[str, Any] = {"status": "UNRESOLVED", "root": str(root)}
+    if not frozen.exists():
+        return result
+    result.update({
+        "status": "RESOLVED",
+        "frozen_json_sha256": _sha256_file(frozen),
+        "frozen_json": json.loads(frozen.read_text(encoding="utf-8")),
+    })
+    required = [
+        root / "train" / "shard_000000.tokens.bin",
+        root / "train" / "shard_000000.valid_lengths.bin",
+        root / "train" / "shard_000000.provenance.parquet",
+    ]
+    result["required_files"] = []
+    for path in required:
+        entry: dict[str, Any] = {"path": str(path.relative_to(root)), "exists": path.exists()}
+        if path.exists():
+            stat = path.stat()
+            entry.update({"size": stat.st_size, "sha256": _sha256_file(path)})
+        result["required_files"].append(entry)
+    result["fingerprint"] = hashlib.sha256(canonical_json(result).encode("utf-8")).hexdigest()
+    return result
+
+
+def _atomic_json(path: Path, value: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_name(f".{path.name}.{os.getpid()}.{uuid.uuid4().hex}.tmp")
+    try:
+        with temporary.open("x", encoding="utf-8", newline="\n") as handle:
+            handle.write(json.dumps(value, sort_keys=True, indent=2, allow_nan=False) + "\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, path)
+    finally:
+        if temporary.exists():
+            temporary.unlink()
+
+
+def _append_event(path: Path, event: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8", newline="\n") as handle:
+        handle.write(json.dumps(event, sort_keys=True, allow_nan=False) + "\n")
+        handle.flush()
+        os.fsync(handle.fileno())
+
+
+def _read_events(path: Path) -> list[dict[str, Any]]:
+    if not path.exists():
+        return []
+    events: list[dict[str, Any]] = []
+    with path.open("r", encoding="utf-8") as handle:
+        for line_number, line in enumerate(handle, 1):
+            if not line.strip():
+                raise ValueError(f"attempt log contains a blank line at line {line_number}")
+            try:
+                value = json.loads(line)
+            except json.JSONDecodeError as exc:
+                raise ValueError(f"attempt log line {line_number} is invalid JSON") from exc
+            if not isinstance(value, dict) or value.get("event") not in {"begin", "started", "end", "recovered"}:
+                raise ValueError(f"attempt log line {line_number} has an invalid event")
+            events.append(value)
+    return events
+
+
+def _active_attempts(events: Iterable[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    active: dict[str, dict[str, Any]] = {}
+    for event in events:
+        attempt_id = event.get("attempt_id")
+        if not isinstance(attempt_id, str) or not attempt_id:
+            raise ValueError("attempt event is missing attempt_id")
+        if event["event"] == "begin":
+            if attempt_id in active:
+                raise ValueError(f"attempt began twice without completion: {attempt_id}")
+            active[attempt_id] = event
+        elif event["event"] == "started":
+            if attempt_id not in active:
+                raise ValueError(f"attempt started without a begin event: {attempt_id}")
+            active[attempt_id] = {**active[attempt_id], "pid": event.get("pid")}
+        elif event["event"] in {"end", "recovered"}:
+            if attempt_id not in active:
+                raise ValueError(f"attempt ended without a begin event: {attempt_id}")
+            active.pop(attempt_id, None)
+    return active
+
+
+def _manifest_identity(
+    plan: dict[str, Any],
+    candidate: dict[str, str],
+    gpu: dict[str, Any],
     command_template: str,
+    corpus: dict[str, Any],
+    timeout_seconds: float,
+    preflight: dict[str, Any] | None,
+) -> dict[str, Any]:
+    identity: dict[str, Any] = {
+        "plan_id": plan["plan_id"],
+        "plan_sha256": hashlib.sha256(canonical_json(plan).encode("utf-8")).hexdigest(),
+        "contract_sha256": contract_sha256(),
+        "source_commit": candidate["candidate_commit"],
+        "candidate_branch": candidate["candidate_branch"],
+        "canonical_source_sha256": candidate["canonical_source_sha256"],
+        "champion_commit": candidate.get("champion_commit", CHAMPION_COMMIT_FULL),
+        "gpu": {
+            "uuid": gpu.get("uuid"),
+            "name": gpu.get("name", gpu.get("device")),
+            "driver_version": gpu.get("driver_version", gpu.get("driver")),
+        },
+        "corpus": corpus,
+        "command_template": command_template,
+        "benchmark_limits": {
+            "microbatch": 32,
+            "warmups": WARMUPS,
+            "timed_repetitions": REPETITIONS,
+            "timeout_seconds": timeout_seconds,
+        },
+    }
+    if preflight is not None:
+        identity["runtime"] = {
+            "torch": preflight.get("torch"),
+            "cuda": preflight.get("cuda"),
+            "sm": preflight.get("sm"),
+            "device": preflight.get("device"),
+        }
+    return identity
+
+
+def _load_json_object(path: Path, label: str) -> dict[str, Any] | None:
+    if not path.exists():
+        return None
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ValueError(f"{label} is unreadable or invalid JSON: {path}") from exc
+    if not isinstance(value, dict):
+        raise ValueError(f"{label} must be a JSON object: {path}")
+    return value
+
+
+def _validate_resume(
+    plan: dict[str, Any],
+    records: list[dict[str, Any]],
+    candidate: dict[str, str],
+    state: dict[str, Any] | None,
+) -> None:
+    expected_slots = plan["run_order"]
+    if len(records) > len(expected_slots):
+        raise ValueError("ledger contains more records than the frozen run order")
+    for index, record in enumerate(records):
+        expected = expected_slots[index]
+        context = run_context(plan, expected)
+        if record.get("run_id") != context["run_id"]:
+            raise ValueError(
+                f"ledger is not an ordered prefix: line {index + 1} has {record.get('run_id')!r}, "
+                f"expected {context['run_id']!r}"
+            )
+        for key in ("plan_id", "arm_id", "block_id", "within_block_position", "selected_levels"):
+            if record.get(key) != context[key]:
+                raise ValueError(f"ledger context drift for {context['run_id']}: {key}")
+        if record.get("source_commit") != candidate["candidate_commit"]:
+            raise ValueError(f"ledger source commit drift for {context['run_id']}")
+        execution = record.get("execution")
+        if not isinstance(execution, dict) or execution.get("candidate_commit") != candidate["candidate_commit"]:
+            raise ValueError(f"ledger execution provenance is missing for {context['run_id']}")
+    if state is not None:
+        if state.get("schema_version") != STATE_SCHEMA_VERSION or state.get("plan_id") != plan["plan_id"]:
+            raise ValueError("campaign state does not belong to this plan")
+        completed = state.get("completed_run_ids")
+        ledger_completed = [record["run_id"] for record in records]
+        if not isinstance(completed, list) or completed != ledger_completed[:len(completed)]:
+            raise ValueError("campaign state and result ledger disagree")
+        if len(completed) < len(ledger_completed):
+            # A process can append a fully validated result and be killed
+            # before the following state.json atomic replace.  The ordered
+            # ledger is authoritative in that one recoverable direction.
+            state["completed_run_ids"] = ledger_completed
+            state["failed_run_id"] = None
+
+
+def _require_oracle_and_memory(payload: dict[str, Any], gpu: dict[str, Any], run_id: str) -> None:
+    oracle = payload.get("oracle")
+    if not isinstance(oracle, dict) or oracle.get("status") != "PASS":
+        raise ValueError(f"{run_id}: oracle.status must be PASS before timing is accepted")
+    for gate in ("same_document_reset", "tied_qk_backward"):
+        if oracle.get(gate) != "PASS":
+            raise ValueError(f"{run_id}: {gate} gate did not pass")
+    memory = payload.get("memory")
+    if isinstance(memory, dict) and memory.get("status") not in (None, "PASS"):
+        raise ValueError(f"{run_id}: memory gate did not pass: {memory.get('status')!r}")
+    if payload.get("memory_ok") is False or payload.get("memory_status") not in (None, "PASS"):
+        raise ValueError(f"{run_id}: runner reported a memory violation")
+    peak = payload.get("peak_GiB")
+    if isinstance(peak, bool) or not isinstance(peak, (int, float)) or not math.isfinite(float(peak)) or float(peak) <= 0:
+        raise ValueError(f"{run_id}: result must include a positive finite peak_GiB")
+    capacity = gpu.get("vram_GiB")
+    if capacity is None or float(peak) >= float(capacity):
+        raise ValueError(f"{run_id}: peak_GiB={peak} exceeds target device capacity")
+
+
+def _validate_worker_payload(
+    payload: dict[str, Any],
     context: dict[str, Any],
     candidate: dict[str, str],
     gpu: dict[str, Any],
-    ledger: Path,
+    attempt_id: str,
 ) -> dict[str, Any]:
-    command = _format_command(command_template, context, candidate)
-    env = os.environ.copy()
-    env.update({
-        "ICRL_G0_PLAN_ID": context["plan_id"],
-        "ICRL_G0_RUN_ID": context["run_id"],
-        "ICRL_G0_ARM_ID": context["arm_id"],
-        "ICRL_G0_BLOCK_ID": str(context["block_id"]),
-        "ICRL_G0_WITHIN_BLOCK_POSITION": str(context["within_block_position"]),
-        "ICRL_G0_SELECTED_LEVELS_JSON": json.dumps(context["selected_levels"], sort_keys=True),
-        "ICRL_G0_CHAMPION_IMMUTABLE": "1",
-    })
-    completed = subprocess.run(
-        command,
-        cwd=candidate["candidate_root"],
-        env=env,
-        shell=True,
-        text=True,
-        capture_output=True,
-        check=False,
-    )
-    if completed.returncode != 0:
-        raise RuntimeError(
-            f"GPU command failed for {context['run_id']} ({completed.returncode})\n"
-            f"stdout:\n{completed.stdout}\nstderr:\n{completed.stderr}"
-        )
-    payload = _json_from_stdout(completed.stdout)
-    for key in ("run_id", "arm_id", "block_id"):
-        if key in payload and payload[key] != context[key]:
-            raise ValueError(f"GPU result {key} disagrees with run order for {context['run_id']}")
-    if payload.get("source_commit") not in (None, candidate["candidate_commit"]):
-        raise ValueError(f"GPU result source_commit is not the candidate commit for {context['run_id']}")
-
+    for key in ("run_id", "arm_id", "block_id", "within_block_position", "selected_levels", "source_commit", "attempt_id"):
+        if key not in payload:
+            raise ValueError(f"{context['run_id']}: worker result is missing {key}")
+    for key in ("run_id", "arm_id", "block_id", "within_block_position", "selected_levels"):
+        if payload[key] != context[key]:
+            raise ValueError(f"{context['run_id']}: worker {key} disagrees with run order")
+    if payload["source_commit"] != candidate["candidate_commit"]:
+        raise ValueError(f"{context['run_id']}: worker source_commit is not the candidate commit")
+    if payload["attempt_id"] != attempt_id:
+        raise ValueError(f"{context['run_id']}: worker attempt_id does not match the supervisor attempt")
+    _require_oracle_and_memory(payload, gpu, context["run_id"])
     record = {
         **payload,
         "schema_version": 1,
-        "plan_id": context["plan_id"],
+        "plan_id": PLAN_ID,
         "source_commit": candidate["candidate_commit"],
         "run_id": context["run_id"],
         "arm_id": context["arm_id"],
@@ -201,14 +458,251 @@ def _run_slot(
         "within_block_position": context["within_block_position"],
         "selected_levels": context["selected_levels"],
         "execution": {
+            **(payload.get("execution") if isinstance(payload.get("execution"), dict) else {}),
             "candidate_branch": candidate["candidate_branch"],
             "candidate_commit": candidate["candidate_commit"],
             "gpu": gpu,
+            "attempt_id": attempt_id,
             "champion_immutable": True,
         },
     }
-    append_result(ledger, record)
+    validate_result(record)
     return record
+
+
+def _failure_status(message: str, process_result: ProcessResult | None, stage: str) -> str:
+    text = message.lower()
+    if process_result is not None and process_result.timed_out:
+        return "TIMEOUT"
+    if "out of memory" in text or "cuda out of memory" in text or "out of memory" in (process_result.tail.lower() if process_result else ""):
+        return "OOM"
+    if "oracle" in text:
+        return "ORACLE"
+    if "memory" in text or "peak_gib" in text:
+        return "MEMORY"
+    if stage == "preflight":
+        return "ENVIRONMENT"
+    if "json" in text or "result" in text or "protocol" in text:
+        return "PROTOCOL"
+    if "gpu" in text or "nvidia" in text:
+        return "GPU"
+    return "PROCESS"
+
+
+def _write_failure(
+    artifact_root: Path,
+    run_id: str,
+    attempt_id: str,
+    *,
+    stage: str,
+    message: str,
+    command: list[str],
+    context: dict[str, Any] | None,
+    gpu: dict[str, Any] | None,
+    log_path: Path,
+    process_result: ProcessResult | None = None,
+    error_type: str | None = None,
+) -> Path:
+    destination = artifact_root / run_id / "attempts" / attempt_id
+    payload = {
+        "schema_version": 1,
+        "status": _failure_status(message, process_result, stage),
+        "stage": stage,
+        "run_id": run_id,
+        "attempt_id": attempt_id,
+        "error_type": error_type or "RuntimeError",
+        "message": message,
+        "command": command,
+        "pid": process_result.pid if process_result else None,
+        "returncode": process_result.returncode if process_result else None,
+        "timed_out": process_result.timed_out if process_result else False,
+        "tail": process_result.tail if process_result else "",
+        "elapsed_seconds": process_result.elapsed_seconds if process_result else None,
+        "log_path": str(log_path),
+        "context": context,
+        "gpu": gpu,
+        "created_at": _utcnow(),
+    }
+    path = destination / "failure.json"
+    _atomic_json(path, payload)
+    _atomic_json(artifact_root / run_id / "failure.json", payload)
+    return path
+
+
+def _emit_to_log(console: Any, line: str) -> None:
+    print(line, end="", flush=True)
+    console.write(line)
+    console.flush()
+
+
+def _run_attempt(
+    *,
+    stage: str,
+    run_id: str,
+    command: list[str],
+    env: dict[str, str],
+    cwd: Path,
+    log_path: Path,
+    console: Any,
+    attempts_path: Path,
+    artifact_root: Path,
+    context: dict[str, Any] | None,
+    gpu: dict[str, Any] | None,
+    timeout_seconds: float,
+    inherit_fds: tuple[int, ...],
+    attempt_id: str | None = None,
+) -> tuple[str, ProcessResult, dict[str, Any] | None]:
+    attempt_id = attempt_id or uuid.uuid4().hex
+    begin = _utcnow()
+    _append_event(attempts_path, {
+        "event": "begin",
+        "attempt_id": attempt_id,
+        "stage": stage,
+        "run_id": run_id,
+        "command": command,
+        "started_at": begin,
+        "pid": None,
+    })
+    process_result: ProcessResult | None = None
+    try:
+        process_result = run_process(
+            command,
+            cwd=cwd,
+            env=env,
+            log_path=log_path,
+            timeout_seconds=timeout_seconds,
+            emit=lambda line: _emit_to_log(console, line),
+            started=lambda pid: _append_event(attempts_path, {
+                "event": "started",
+                "attempt_id": attempt_id,
+                "stage": stage,
+                "run_id": run_id,
+                "pid": pid,
+                "started_at": begin,
+            }),
+            inherit_fds=inherit_fds,
+        )
+        if process_result.timed_out:
+            raise TimeoutError(f"{stage} worker timed out after {timeout_seconds:.1f}s")
+        if process_result.returncode != 0:
+            raise RuntimeError(f"{stage} worker exited with code {process_result.returncode}")
+        payload = _json_from_stdout(Path(log_path).read_text(encoding="utf-8", errors="replace"))
+        _append_event(attempts_path, {
+            "event": "end",
+            "attempt_id": attempt_id,
+            "stage": stage,
+            "run_id": run_id,
+            "status": "PROCESS_OK",
+            "returncode": process_result.returncode,
+            "ended_at": _utcnow(),
+        })
+        return attempt_id, process_result, payload
+    except BaseException as exc:
+        message = f"{type(exc).__name__}: {exc}"
+        failure_path = _write_failure(
+            artifact_root,
+            run_id,
+            attempt_id,
+            stage=stage,
+            message=message,
+            command=command,
+            context=context,
+            gpu=gpu,
+            log_path=log_path,
+            process_result=process_result,
+            error_type=type(exc).__name__,
+        )
+        _append_event(attempts_path, {
+            "event": "end",
+            "attempt_id": attempt_id,
+            "stage": stage,
+            "run_id": run_id,
+            "status": "FAILED",
+            "failure_path": str(failure_path),
+            "returncode": process_result.returncode if process_result else None,
+            "ended_at": _utcnow(),
+        })
+        raise
+
+
+def _append_preflight_flag(command: list[str]) -> list[str]:
+    if "--preflight" in command:
+        return command
+    return [*command, "--preflight"]
+
+
+def _validate_preflight(
+    payload: dict[str, Any],
+    gpu: dict[str, Any],
+    corpus: dict[str, Any],
+    candidate_commit: str,
+) -> dict[str, Any]:
+    if payload.get("status") != "PREFLIGHT_PASS":
+        raise ValueError("candidate preflight did not return PREFLIGHT_PASS")
+    if payload.get("plan_id") != PLAN_ID:
+        raise ValueError("candidate preflight belongs to a different plan")
+    if payload.get("source_commit") != candidate_commit:
+        raise ValueError("candidate preflight source commit disagrees with the selected worktree")
+    if payload.get("sm") != "sm_120":
+        raise ValueError(f"candidate preflight reported the wrong SM: {payload.get('sm')!r}")
+    if EXPECTED_GPU_NAME.lower() not in str(payload.get("device", "")).lower():
+        raise ValueError(f"candidate preflight reported the wrong GPU: {payload.get('device')!r}")
+    if payload.get("gpu_uuid") not in (None, gpu.get("uuid")):
+        raise ValueError("candidate preflight GPU UUID disagrees with the locked physical GPU")
+    if payload.get("torch") is None or payload.get("cuda") is None:
+        raise ValueError("candidate preflight did not report the torch/CUDA runtime")
+    limits = payload.get("benchmark_limits")
+    if not isinstance(limits, dict) or limits.get("microbatch") != 32 or limits.get("warmups") != WARMUPS or limits.get("timed_repetitions") != REPETITIONS:
+        raise ValueError("candidate preflight benchmark limits disagree with the frozen protocol")
+    if corpus.get("status") == "RESOLVED":
+        child_fingerprint = payload.get("corpus", {}).get("fingerprint") if isinstance(payload.get("corpus"), dict) else None
+        if child_fingerprint and child_fingerprint != corpus.get("fingerprint"):
+            raise ValueError("candidate preflight corpus fingerprint disagrees with the campaign manifest")
+    return payload
+
+
+def _default_campaign_paths(ledger: Path, campaign_dir: Path | None) -> dict[str, Path]:
+    directory = (campaign_dir or ledger.parent).resolve()
+    return {
+        "directory": directory,
+        "manifest": directory / "generation0_manifest.json",
+        "state": directory / "generation0_state.json",
+        "attempts": directory / "generation0_attempts.jsonl",
+        "console": directory / "generation0_console.log",
+        "artifact_root": directory / "generation0_artifacts",
+        "campaign_lock": directory / "generation0_campaign.lock",
+    }
+
+
+def _fake_or_real_gpu(
+    gpu_info: dict[str, Any] | None,
+    gpu_uuid: str | None,
+    gpu_index: int | None,
+) -> tuple[dict[str, Any], Callable[[], None], Callable[[], None], Callable[[], None], Path]:
+    """Return GPU operations; ``gpu_info`` is test-only dependency injection."""
+    if gpu_info is not None:
+        info = dict(gpu_info)
+        info.setdefault("uuid", gpu_uuid or "test-gpu")
+        info.setdefault("device", EXPECTED_GPU_NAME)
+        info.setdefault("name", info["device"])
+        info.setdefault("vram_GiB", 94.0)
+        info.setdefault("driver_version", "test")
+        return (
+            info,
+            lambda: None,
+            lambda: None,
+            lambda: None,
+            gpu_lock_path(str(info["uuid"])),
+        )
+    selected = select_target_gpu(gpu_uuid=gpu_uuid, gpu_index=gpu_index)
+    info = selected.as_dict()
+    return (
+        info,
+        lambda: assert_idle_gpu(selected),
+        lambda: None,
+        lambda: wait_gpu_released(selected, baseline_free_mib=selected.free_mib),
+        gpu_lock_path(selected.uuid),
+    )
 
 
 def execute_plan(
@@ -218,34 +712,329 @@ def execute_plan(
     *,
     plan: dict[str, Any] | None = None,
     limit: int | None = None,
+    campaign_dir: Path | None = None,
+    console_log: Path | None = None,
+    artifact_root: Path | None = None,
+    corpus_root: Path | None = None,
+    timeout_seconds: float = DEFAULT_TIMEOUT_SECONDS,
+    retry_failed: bool = False,
+    gpu_uuid: str | None = None,
+    gpu_index: int | None = None,
+    preflight_required: bool = True,
+    # These two hooks make process/ledger behavior unit-testable without
+    # pretending that a CPU is evidence for a target-GPU measurement.
+    gpu_info: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Execute missing slots only after all candidate/GPU/control gates pass."""
+    """Execute the next ordered prefix of slots and stop on every violation."""
     selected_plan = plan or build_plan()
     assert_control_treatment(selected_plan)
     if selected_plan.get("execution_allowed") is not True or selected_plan.get("execution_requires_explicit_flag") is not True:
         raise ValueError("Generation-0 execution is not explicitly enabled in the frozen plan")
     if limit is not None and limit < 1:
         raise ValueError("limit must be positive when provided")
+    if timeout_seconds <= 0 or not math.isfinite(timeout_seconds):
+        raise ValueError("timeout_seconds must be finite and positive")
+
+    ledger = ledger.resolve()
+    paths = _default_campaign_paths(ledger, campaign_dir)
+    paths["directory"].mkdir(parents=True, exist_ok=True)
+    if console_log is not None:
+        paths["console"] = console_log.resolve()
+    if artifact_root is not None:
+        paths["artifact_root"] = artifact_root.resolve()
+    paths["artifact_root"].mkdir(parents=True, exist_ok=True)
 
     candidate = assert_candidate_worktree(candidate_root)
-    gpu = assert_target_gpu()
-    existing = existing_run_ids(ledger)
-    slots = selected_plan["run_order"][:limit] if limit is not None else selected_plan["run_order"]
-    executed = []
-    skipped = []
-    for slot in slots:
-        context = run_context(selected_plan, slot)
-        if context["run_id"] in existing:
-            skipped.append(context["run_id"])
-            continue
-        executed.append(_run_slot(command_template, context, candidate, gpu, ledger)["run_id"])
-    return {
-        "status": "EXECUTED",
-        "plan_id": selected_plan["plan_id"],
-        "candidate": candidate,
-        "gpu": gpu,
-        "executed_run_ids": executed,
-        "skipped_existing_run_ids": skipped,
-        "ledger": str(ledger),
-        "champion_immutable": True,
-    }
+    corpus = _corpus_fingerprint(corpus_root)
+    records = read_ledger(ledger)
+    manifest = _load_json_object(paths["manifest"], "campaign manifest")
+    state = _load_json_object(paths["state"], "campaign state")
+    if records and manifest is None:
+        raise ValueError("non-empty ledger has no campaign manifest; refusing to mix historical results")
+    if state is not None and manifest is None and not (
+        state.get("status") == "FAILED" and state.get("failed_run_id") == "PREFLIGHT"
+    ):
+        raise ValueError("campaign state exists without its manifest")
+    _validate_resume(selected_plan, records, candidate, state)
+    events = _read_events(paths["attempts"])
+    if manifest is None and events and not (
+        state is not None and state.get("status") == "FAILED" and state.get("failed_run_id") == "PREFLIGHT"
+    ):
+        raise ValueError("historical attempt log has no compatible campaign manifest")
+    active = _active_attempts(events)
+    if active and not retry_failed:
+        raise RuntimeError(
+            "an earlier attempt has no durable end event; pass --retry-failed to explicitly recover it: "
+            f"{sorted(active)}"
+        )
+    if active and retry_failed:
+        for attempt_id, begin in active.items():
+            _append_event(paths["attempts"], {
+                "event": "recovered",
+                "attempt_id": attempt_id,
+                "run_id": begin.get("run_id"),
+                "stage": begin.get("stage"),
+                "status": "RECOVERED_INTERRUPTED",
+                "ended_at": _utcnow(),
+            })
+
+    if state is not None and state.get("status") == "FAILED" and not retry_failed:
+        raise RuntimeError(
+            f"campaign is sticky-failed at {state.get('failed_run_id')}; "
+            "pass --retry-failed or start a new campaign directory"
+        )
+    if state is not None and state.get("status") == "FAILED" and state.get("failed_run_id") != "PREFLIGHT":
+        next_run_id = selected_plan["run_order"][len(records)]["run_id"] if len(records) < len(selected_plan["run_order"]) else None
+        if state.get("failed_run_id") != next_run_id:
+            raise ValueError("campaign state names a failed run that is not the next ordered slot")
+
+    gpu, assert_idle, _unused, await_release, lock_path = _fake_or_real_gpu(gpu_info, gpu_uuid, gpu_index)
+    # The campaign lock is acquired before the physical-GPU lock so two
+    # invocations of the same campaign cannot deadlock while competing for it.
+    with interrupt_on_signal(), FileLock(paths["campaign_lock"], {"kind": "generation0-campaign"}), FileLock(
+        lock_path, {"kind": "generation0-gpu", "gpu_uuid": gpu["uuid"]}
+    ) as gpu_lock:
+        assert_idle()
+        environment = worker_environment(
+            GpuSnapshot(
+                uuid=str(gpu["uuid"]),
+                name=str(gpu.get("name", gpu.get("device", EXPECTED_GPU_NAME))),
+                total_mib=int(float(gpu.get("vram_GiB", 94.0)) * 1024),
+                used_mib=int(gpu.get("memory_used_MiB", 0)),
+                free_mib=int(gpu.get("memory_free_MiB", int(float(gpu.get("vram_GiB", 94.0)) * 1024))),
+                driver=str(gpu.get("driver_version", gpu.get("driver", "unknown"))),
+            ),
+            corpus_root=corpus_root,
+        )
+        environment.update({
+            "ICRL_G0_PLAN_ID": selected_plan["plan_id"],
+            "ICRL_G0_CHAMPION_IMMUTABLE": "1",
+            "ICRL_G0_ARTIFACT_ROOT": str(paths["artifact_root"]),
+        })
+        paths["console"].parent.mkdir(parents=True, exist_ok=True)
+        with paths["console"].open("a", encoding="utf-8", buffering=1) as console:
+            console.write(f"\n=== Generation-0 supervisor start {_utcnow()} ===\n")
+            console.flush()
+            preflight_payload: dict[str, Any] | None = None
+            preflight_command: list[str] = []
+            preflight_log = paths["directory"] / "logs" / "preflight-unstarted.log"
+            preflight_attempt_tag = "preflight-unstarted"
+            try:
+                slots = selected_plan["run_order"]
+                if limit is not None and limit < len(records):
+                    raise ValueError(f"--limit={limit} is smaller than the existing ledger prefix ({len(records)})")
+                target_count = min(limit, len(slots)) if limit is not None else len(slots)
+                if preflight_required:
+                    preflight_context = {
+                        "plan_id": selected_plan["plan_id"],
+                        "run_id": "PREFLIGHT",
+                        "arm_id": "PREFLIGHT",
+                        "block_id": 0,
+                        "within_block_position": 0,
+                        "selected_levels": selected_plan["control_reference"]["factor_levels"],
+                    }
+                    preflight_attempt_tag = uuid.uuid4().hex
+                    command = _append_preflight_flag(_command_argv(_format_command(command_template, preflight_context, candidate, preflight_attempt_tag)))
+                    preflight_command = command
+                    environment.update({
+                        "ICRL_G0_RUN_ID": "PREFLIGHT",
+                        "ICRL_G0_ARM_ID": "PREFLIGHT",
+                        "ICRL_G0_BLOCK_ID": "0",
+                        "ICRL_G0_WITHIN_BLOCK_POSITION": "0",
+                        "ICRL_G0_SELECTED_LEVELS_JSON": json.dumps(preflight_context["selected_levels"], sort_keys=True),
+                        "ICRL_G0_ATTEMPT_ID": preflight_attempt_tag,
+                        "ICRL_G0_COMMAND": json.dumps(command),
+                    })
+                    preflight_log = paths["directory"] / "logs" / f"preflight-{preflight_attempt_tag}.log"
+                    actual_attempt, process_result, payload = _run_attempt(
+                        stage="preflight",
+                        run_id="PREFLIGHT",
+                        command=command,
+                        env=environment,
+                        cwd=Path(candidate["candidate_root"]),
+                        log_path=preflight_log,
+                        console=console,
+                        attempts_path=paths["attempts"],
+                        artifact_root=paths["artifact_root"],
+                        context=preflight_context,
+                        gpu=gpu,
+                        timeout_seconds=timeout_seconds,
+                        inherit_fds=(gpu_lock.fileno(),),
+                        attempt_id=preflight_attempt_tag,
+                    )
+                    await_release()
+                    if payload is None:
+                        raise ValueError("preflight worker emitted no payload")
+                    preflight_payload = _validate_preflight(payload, gpu, corpus, candidate["candidate_commit"])
+                    console.write(f"preflight: PASS {json.dumps(preflight_payload, sort_keys=True)}\n")
+                    console.flush()
+                    if state is not None:
+                        state["failed_run_id"] = None
+
+                expected_identity = _manifest_identity(
+                    selected_plan,
+                    candidate,
+                    gpu,
+                    command_template,
+                    corpus,
+                    timeout_seconds,
+                    preflight_payload,
+                )
+                if manifest is not None:
+                    if manifest.get("schema_version") != MANIFEST_SCHEMA_VERSION or manifest.get("identity") != expected_identity:
+                        raise ValueError("campaign manifest identity drifted; use a new campaign directory")
+                else:
+                    manifest = {
+                        "schema_version": MANIFEST_SCHEMA_VERSION,
+                        "created_at": _utcnow(),
+                        "identity": expected_identity,
+                        "status": "READY",
+                        "champion_immutable": True,
+                    }
+                    _atomic_json(paths["manifest"], manifest)
+
+                if state is None:
+                    state = {
+                        "schema_version": STATE_SCHEMA_VERSION,
+                        "plan_id": selected_plan["plan_id"],
+                        "status": "READY",
+                        "completed_run_ids": [record["run_id"] for record in records],
+                        "failed_run_id": None,
+                        "updated_at": _utcnow(),
+                    }
+                    _atomic_json(paths["state"], state)
+
+                executed: list[str] = []
+                skipped: list[str] = []
+                for index in range(len(records), target_count):
+                    slot = slots[index]
+                    context = run_context(selected_plan, slot)
+                    attempt_tag = uuid.uuid4().hex
+                    command = _command_argv(_format_command(command_template, context, candidate, attempt_tag))
+                    environment.update({
+                        "ICRL_G0_RUN_ID": context["run_id"],
+                        "ICRL_G0_ARM_ID": context["arm_id"],
+                        "ICRL_G0_BLOCK_ID": str(context["block_id"]),
+                        "ICRL_G0_WITHIN_BLOCK_POSITION": str(context["within_block_position"]),
+                        "ICRL_G0_SELECTED_LEVELS_JSON": json.dumps(context["selected_levels"], sort_keys=True),
+                        "ICRL_G0_ATTEMPT_ID": attempt_tag,
+                        "ICRL_G0_COMMAND": json.dumps(command),
+                    })
+                    console.write(
+                        f"\n=== {context['run_id']} {context['arm_id']} block={context['block_id']} "
+                        f"position={context['within_block_position']} ===\ncommand: {command}\n"
+                    )
+                    console.flush()
+                    worker_log = paths["directory"] / "logs" / f"{context['run_id']}-{attempt_tag}.log"
+                    process_result: ProcessResult | None = None
+                    actual_attempt = attempt_tag
+                    try:
+                        actual_attempt, process_result, payload = _run_attempt(
+                            stage="benchmark",
+                            run_id=context["run_id"],
+                            command=command,
+                            env=environment,
+                            cwd=Path(candidate["candidate_root"]),
+                            log_path=worker_log,
+                            console=console,
+                            attempts_path=paths["attempts"],
+                            artifact_root=paths["artifact_root"],
+                            context=context,
+                            gpu=gpu,
+                            timeout_seconds=timeout_seconds,
+                            inherit_fds=(gpu_lock.fileno(),),
+                            attempt_id=attempt_tag,
+                        )
+                        await_release()
+                        if payload is None:
+                            raise ValueError("benchmark worker emitted no payload")
+                        record = _validate_worker_payload(payload, context, candidate, gpu, actual_attempt)
+                        # Ledger admission happens only after the process has
+                        # exited and the physical GPU has returned to baseline.
+                        append_result(ledger, record)
+                        records.append(record)
+                        executed.append(context["run_id"])
+                        state["completed_run_ids"] = [item["run_id"] for item in records]
+                        state["failed_run_id"] = None
+                        state["status"] = "COMPLETE" if len(records) == len(slots) else "PARTIAL"
+                        state["updated_at"] = _utcnow()
+                        _atomic_json(paths["state"], state)
+                        console.write(f"accepted append-only result: {context['run_id']}\n")
+                        console.flush()
+                    except BaseException as exc:
+                        failure_path = paths["artifact_root"] / context["run_id"] / "failure.json"
+                        if not failure_path.exists():
+                            _write_failure(
+                                paths["artifact_root"],
+                                context["run_id"],
+                                actual_attempt,
+                                stage="benchmark",
+                                message=f"{type(exc).__name__}: {exc}",
+                                command=command,
+                                context=context,
+                                gpu=gpu,
+                                log_path=worker_log,
+                                process_result=process_result,
+                                error_type=type(exc).__name__,
+                            )
+                        state["completed_run_ids"] = [item["run_id"] for item in records]
+                        state["failed_run_id"] = context["run_id"]
+                        state["status"] = "FAILED"
+                        state["updated_at"] = _utcnow()
+                        _atomic_json(paths["state"], state)
+                        console.write(f"FAIL_CLOSED: {type(exc).__name__}: {exc}\n")
+                        console.flush()
+                        raise
+
+                state["status"] = "COMPLETE" if len(records) == len(slots) else "PARTIAL"
+                state["updated_at"] = _utcnow()
+                _atomic_json(paths["state"], state)
+                summary = {
+                    "status": state["status"],
+                    "plan_id": selected_plan["plan_id"],
+                    "executed_run_ids": executed,
+                    "skipped_existing_run_ids": skipped,
+                    "completed_count": len(records),
+                    "total_slots": len(slots),
+                    "ledger": str(ledger),
+                    "manifest": str(paths["manifest"]),
+                    "state": str(paths["state"]),
+                    "console_log": str(paths["console"]),
+                    "champion_immutable": True,
+                }
+                console.write(json.dumps(summary, sort_keys=True) + "\n")
+                console.flush()
+                return summary
+            except BaseException as exc:
+                if preflight_required and preflight_payload is None:
+                    failure_path = paths["artifact_root"] / "PREFLIGHT" / "failure.json"
+                    if not failure_path.exists():
+                        _write_failure(
+                            paths["artifact_root"],
+                            "PREFLIGHT",
+                            preflight_attempt_tag,
+                            stage="preflight",
+                            message=f"{type(exc).__name__}: {exc}",
+                            command=preflight_command,
+                            context={"plan_id": selected_plan["plan_id"], "run_id": "PREFLIGHT"},
+                            gpu=gpu,
+                            log_path=preflight_log,
+                            error_type=type(exc).__name__,
+                        )
+                    if state is None:
+                        state = {
+                            "schema_version": STATE_SCHEMA_VERSION,
+                            "plan_id": selected_plan["plan_id"],
+                            "status": "FAILED",
+                            "completed_run_ids": [item["run_id"] for item in records],
+                            "failed_run_id": "PREFLIGHT",
+                            "updated_at": _utcnow(),
+                        }
+                    else:
+                        state["status"] = "FAILED"
+                        state["failed_run_id"] = "PREFLIGHT"
+                        state["updated_at"] = _utcnow()
+                    _atomic_json(paths["state"], state)
+                console.write(traceback.format_exc())
+                console.flush()
+                raise

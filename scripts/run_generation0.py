@@ -19,11 +19,19 @@ def main() -> None:
         "--command-template",
         help=(
             "candidate command; placeholders: {plan_id}, {run_id}, {arm_id}, "
-            "{block_id}, {within_block_position}, {candidate_root}, {selected_levels_json}"
+            "{block_id}, {within_block_position}, {candidate_root}, {selected_levels_json}, {attempt_id}"
         ),
     )
     parser.add_argument("--candidate-root", type=Path, help="separate codex/experiment or codex/generation0 worktree")
     parser.add_argument("--ledger", type=Path, default=Path("results/generation0.jsonl"))
+    parser.add_argument("--campaign-dir", type=Path, help="stable directory containing manifest, state, attempts, and logs")
+    parser.add_argument("--console-log", type=Path, help="append-only supervisor console transcript")
+    parser.add_argument("--artifact-root", type=Path, help="durable per-attempt result/failure artifacts")
+    parser.add_argument("--corpus-root", type=Path, help="frozen corpus root passed to the candidate worker")
+    parser.add_argument("--gpu-uuid", help="physical target GPU UUID; required when target selection is ambiguous")
+    parser.add_argument("--gpu-index", type=int, help="physical nvidia-smi GPU index")
+    parser.add_argument("--timeout-seconds", type=float, default=60 * 60, help="per-worker wall-clock timeout")
+    parser.add_argument("--retry-failed", action="store_true", help="explicitly retry the sticky failed next slot")
     parser.add_argument("--limit", type=int, help="optional number of run-order slots to execute")
     parser.add_argument("--execute", action="store_true", help="perform GPU execution; omitted means preview only")
     args = parser.parse_args()
@@ -51,6 +59,14 @@ def main() -> None:
         args.ledger,
         plan=plan,
         limit=args.limit,
+        campaign_dir=args.campaign_dir,
+        console_log=args.console_log,
+        artifact_root=args.artifact_root,
+        corpus_root=args.corpus_root,
+        gpu_uuid=args.gpu_uuid,
+        gpu_index=args.gpu_index,
+        timeout_seconds=args.timeout_seconds,
+        retry_failed=args.retry_failed,
     )
     print(json.dumps(result, indent=2, sort_keys=True))
 

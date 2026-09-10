@@ -22,6 +22,8 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+import traceback
+from datetime import datetime, timezone
 from functools import partial
 from typing import Any
 
@@ -42,6 +44,42 @@ FP32_REL_L2_MAX = 3e-4
 FP32_MAX_ABS_MAX = 3e-3
 WARMUPS = 2
 REPETITIONS = 5
+
+CURRENT_PHASE = "startup"
+PHASE_EVENTS: list[dict[str, Any]] = []
+CURRENT_CONTEXT: dict[str, Any] | None = None
+
+
+def _utcnow() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _memory_snapshot() -> dict[str, Any]:
+    snapshot: dict[str, Any] = {}
+    try:
+        snapshot["allocated_GiB"] = float(torch.cuda.memory_allocated() / 2**30)
+        snapshot["reserved_GiB"] = float(torch.cuda.memory_reserved() / 2**30)
+        snapshot["max_allocated_GiB"] = float(torch.cuda.max_memory_allocated() / 2**30)
+        free, total = torch.cuda.mem_get_info()
+        snapshot["free_GiB"] = float(free / 2**30)
+        snapshot["total_GiB"] = float(total / 2**30)
+    except Exception as exc:
+        snapshot["unavailable"] = f"{type(exc).__name__}: {exc}"
+    return snapshot
+
+
+def _phase(name: str, **details: Any) -> None:
+    global CURRENT_PHASE
+    CURRENT_PHASE = name
+    event = {
+        "phase": name,
+        "timestamp": _utcnow(),
+        "pid": os.getpid(),
+        "memory": _memory_snapshot(),
+        **details,
+    }
+    PHASE_EVENTS.append(event)
+    print(f"PHASE {name}: {json.dumps(event['memory'], sort_keys=True)}", flush=True)
 
 FACTOR_NAMES = (
     "full_symmetric_qk_sm120",
@@ -186,6 +224,7 @@ def _target_gpu() -> dict[str, Any]:
         "torch": torch.__version__,
         "cuda": torch.version.cuda,
         "vram_GiB": vram_gib,
+        "gpu_uuid": os.environ.get("ICRL_G0_GPU_UUID"),
     }
 
 
@@ -199,7 +238,10 @@ def _required_env(name: str) -> str:
 def _run_context() -> dict[str, Any]:
     if _required_env("ICRL_G0_PLAN_ID") != PLAN_ID:
         raise RuntimeError("runner received an unexpected plan id")
-    levels = json.loads(_required_env("ICRL_G0_SELECTED_LEVELS_JSON"))
+    try:
+        levels = json.loads(_required_env("ICRL_G0_SELECTED_LEVELS_JSON"))
+    except json.JSONDecodeError as exc:
+        raise RuntimeError("runner received malformed selected-level JSON") from exc
     if not isinstance(levels, dict) or set(levels) != set(FACTOR_NAMES):
         raise RuntimeError("runner received an incomplete selected-level map")
     return {
@@ -209,6 +251,7 @@ def _run_context() -> dict[str, Any]:
         "block_id": int(_required_env("ICRL_G0_BLOCK_ID")),
         "within_block_position": int(_required_env("ICRL_G0_WITHIN_BLOCK_POSITION")),
         "selected_levels": levels,
+        "attempt_id": _required_env("ICRL_G0_ATTEMPT_ID"),
     }
 
 
@@ -236,6 +279,76 @@ def _set_runtime_globals(corpus_override: str | None) -> None:
     CANONICAL["PROP"] = props
     CANONICAL["CAUSAL"] = torch.ones((T, T), device=device, dtype=torch.bool).tril(diagonal=-1)
     CANONICAL["ROPE_PAIR_FREQ"] = CANONICAL["pair_freq"](K, device)
+
+
+def _corpus_fingerprint(corpus_override: str | None) -> dict[str, Any]:
+    """Hash the frozen manifest and exact benchmark files without changing them."""
+    configured = corpus_override or os.environ.get("ICRL_CORPUS_ROOT")
+    root = Path(configured).expanduser().resolve() if configured else Path(
+        "/content/drive/Shareddrives/ICLR PHASE BDH/phase_bdh/corpus/stage2/frozen_5b_v1"
+    )
+    frozen = root / "FROZEN.json"
+    if not frozen.exists():
+        return {"status": "UNRESOLVED", "root": str(root)}
+    result: dict[str, Any] = {
+        "status": "RESOLVED",
+        "root": str(root),
+        "frozen_json_sha256": _sha256(frozen),
+        "frozen_json": json.loads(frozen.read_text(encoding="utf-8")),
+        "required_files": [],
+    }
+    for path in (
+        root / "train" / "shard_000000.tokens.bin",
+        root / "train" / "shard_000000.valid_lengths.bin",
+        root / "train" / "shard_000000.provenance.parquet",
+    ):
+        entry: dict[str, Any] = {"path": str(path.relative_to(root)), "exists": path.exists()}
+        if path.exists():
+            entry.update({"size": path.stat().st_size, "sha256": _sha256(path)})
+        result["required_files"].append(entry)
+    result["fingerprint"] = hashlib.sha256(
+        json.dumps(result, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+    return result
+
+
+def _preflight(context: dict[str, Any], plan: dict[str, Any], control_levels: dict[str, str], gpu: dict[str, Any]) -> dict[str, Any]:
+    """Run environment/corpus gates only; never construct or compile the model."""
+    _phase("preflight_environment")
+    if gpu["sm"] != "sm_120":
+        raise RuntimeError(f"preflight requires sm_120; found {gpu['sm']}")
+    for factor in FACTOR_NAMES:
+        allowed = {entry["name"]: set(entry["levels"]) for entry in plan["factors"]}[factor]
+        if context["selected_levels"][factor] not in allowed:
+            raise RuntimeError(f"selected level is not in the frozen factor catalog: {factor}")
+    _set_runtime_globals(os.environ.get("ICRL_CORPUS_ROOT"))
+    _phase("preflight_corpus")
+    data = CANONICAL["load_corpus"]()
+    rows = int(data.get("rows", 0))
+    if rows < B:
+        raise RuntimeError(f"preflight corpus has too few rows: {rows}")
+    corpus = _corpus_fingerprint(os.environ.get("ICRL_CORPUS_ROOT"))
+    del data
+    import gc
+    gc.collect()
+    torch.cuda.empty_cache()
+    torch.cuda.synchronize()
+    _phase("preflight_complete", rows=rows)
+    return {
+        "status": "PREFLIGHT_PASS",
+        "plan_id": PLAN_ID,
+        "run_id": context["run_id"],
+        "arm_id": context["arm_id"],
+        "attempt_id": context["attempt_id"],
+        "device": gpu["device"],
+        "sm": gpu["sm"],
+        "gpu_uuid": gpu.get("gpu_uuid"),
+        "vram_GiB": gpu["vram_GiB"],
+        "torch": gpu["torch"],
+        "cuda": gpu["cuda"],
+        "corpus": corpus,
+        "benchmark_limits": {"microbatch": B, "warmups": WARMUPS, "timed_repetitions": REPETITIONS},
+    }
 
 
 def _is_high(levels: dict[str, str], factor: str, control_levels: dict[str, str]) -> bool:
@@ -560,12 +673,14 @@ def _load_model(levels: dict[str, str], control_levels: dict[str, str], init: di
 
 def _benchmark_b32(model: Generation0Stage1ArmA, data: dict[str, Any]) -> dict[str, Any]:
     model.train()
+    _phase("compile")
     execute = torch.compile(model, dynamic=False, fullgraph=True)
     samples: list[float] = []
     peak_gib = 0.0
 
-    def one(timed: bool) -> float:
+    def one(timed: bool, phase_name: str) -> float:
         nonlocal peak_gib
+        _phase(phase_name)
         model.zero_grad(set_to_none=True)
         x, y, valid, pos, segpos, full_mask = CANONICAL["micro_to_gpu"](data, 0, include_targets=True)
         denominator = int(valid.sum().item())
@@ -590,13 +705,14 @@ def _benchmark_b32(model: Generation0Stage1ArmA, data: dict[str, Any]) -> dict[s
             raise RuntimeError(f"invalid B32 F+B latency: {elapsed}")
         if timed:
             samples.append(elapsed)
+        _phase(f"{phase_name}_complete", latency_ms=elapsed)
         return elapsed
 
     for index in range(WARMUPS):
         print(f"B32 warmup {index + 1}/{WARMUPS}", flush=True)
-        one(False)
+        one(False, f"warmup_{index + 1}")
     for index in range(REPETITIONS):
-        elapsed = one(True)
+        elapsed = one(True, f"timing_{index + 1}")
         print(f"B32 timed {index + 1}/{REPETITIONS}: {elapsed:.3f} ms", flush=True)
 
     median_ms = float(torch.tensor(samples, dtype=torch.float64).median().item())
@@ -615,16 +731,94 @@ def _benchmark_b32(model: Generation0Stage1ArmA, data: dict[str, Any]) -> dict[s
 
 def _write_artifact(context: dict[str, Any], result: dict[str, Any]) -> str:
     root = Path(os.environ.get("ICRL_G0_ARTIFACT_ROOT", str(REPO_ROOT / "artifacts" / "generation0")))
-    destination = root / context["run_id"]
+    attempt_id = context["attempt_id"]
+    destination = root / context["run_id"] / "attempts" / attempt_id
     destination.mkdir(parents=True, exist_ok=True)
     path = destination / "summary.json"
-    path.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    encoded = json.dumps(result, indent=2, sort_keys=True, allow_nan=False) + "\n"
+    temporary = path.with_name(f".{path.name}.{os.getpid()}.tmp")
+    temporary.write_text(encoded, encoding="utf-8")
+    os.replace(temporary, path)
+    latest = root / context["run_id"] / "summary.json"
+    latest.parent.mkdir(parents=True, exist_ok=True)
+    latest_temp = latest.with_name(f".{latest.name}.{os.getpid()}.tmp")
+    latest_temp.write_text(encoded, encoding="utf-8")
+    os.replace(latest_temp, latest)
     return str(path)
 
 
+def _write_failure_artifact(exc: BaseException) -> str | None:
+    """Persist failure state before interpreter/CUDA cleanup can hide it."""
+    context = CURRENT_CONTEXT or {
+        "plan_id": os.environ.get("ICRL_G0_PLAN_ID"),
+        "run_id": os.environ.get("ICRL_G0_RUN_ID", "UNKNOWN"),
+        "arm_id": os.environ.get("ICRL_G0_ARM_ID"),
+        "block_id": os.environ.get("ICRL_G0_BLOCK_ID"),
+        "within_block_position": os.environ.get("ICRL_G0_WITHIN_BLOCK_POSITION"),
+        "attempt_id": os.environ.get("ICRL_G0_ATTEMPT_ID", "UNKNOWN"),
+    }
+    root_value = os.environ.get("ICRL_G0_ARTIFACT_ROOT")
+    if not root_value:
+        return None
+    root = Path(root_value)
+    run_id = str(context.get("run_id") or "UNKNOWN")
+    attempt_id = str(context.get("attempt_id") or "UNKNOWN")
+    text = f"{type(exc).__name__}: {exc}"
+    lower = text.lower()
+    if isinstance(exc, (KeyboardInterrupt, InterruptedError)):
+        status = "INTERRUPTED"
+    elif isinstance(exc, torch.cuda.OutOfMemoryError) or "out of memory" in lower:
+        status = "OOM"
+    else:
+        status = "FAILED"
+    payload = {
+        "schema_version": 1,
+        "status": status,
+        "stage": CURRENT_PHASE,
+        "run_id": run_id,
+        "attempt_id": attempt_id,
+        "error_type": type(exc).__name__,
+        "message": text,
+        "command": os.environ.get("ICRL_G0_COMMAND"),
+        "pid": os.getpid(),
+        "traceback": traceback.format_exc(),
+        "phase_events": PHASE_EVENTS,
+        "memory_at_failure": _memory_snapshot(),
+        "context": context,
+        "gpu": {"uuid": os.environ.get("ICRL_G0_GPU_UUID")},
+        "created_at": _utcnow(),
+    }
+    destination = root / run_id / "attempts" / attempt_id
+    destination.mkdir(parents=True, exist_ok=True)
+    path = destination / "failure.json"
+    encoded = json.dumps(payload, indent=2, sort_keys=True, allow_nan=False) + "\n"
+    temporary = path.with_name(f".{path.name}.{os.getpid()}.tmp")
+    try:
+        with temporary.open("w", encoding="utf-8", newline="\n") as handle:
+            handle.write(encoded)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, path)
+        latest = root / run_id / "failure.json"
+        latest.parent.mkdir(parents=True, exist_ok=True)
+        latest_temp = latest.with_name(f".{latest.name}.{os.getpid()}.tmp")
+        with latest_temp.open("w", encoding="utf-8", newline="\n") as handle:
+            handle.write(encoded)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(latest_temp, latest)
+        return str(path)
+    finally:
+        if temporary.exists():
+            temporary.unlink()
+
+
 def main() -> int:
+    global CURRENT_CONTEXT
     context = _run_context()
+    CURRENT_CONTEXT = context
     gpu = _target_gpu()
+    _phase("environment")
     # Importing the plan here certifies factor names/levels and the canonical
     # control reference without changing any plan file.
     sys.path.insert(0, str(REPO_ROOT / "src"))
@@ -637,6 +831,11 @@ def main() -> int:
         if context["selected_levels"][factor] not in allowed:
             raise RuntimeError(f"selected level is not in the frozen factor catalog: {factor}")
     candidate_commit = _git_commit()
+    if "--preflight" in sys.argv[1:]:
+        preflight = _preflight(context, plan, control_levels, gpu)
+        preflight["source_commit"] = candidate_commit
+        print(json.dumps(preflight, sort_keys=True), flush=True)
+        return 0
     _set_runtime_globals(os.environ.get("ICRL_CORPUS_ROOT"))
     torch.manual_seed(SEED)
     torch.cuda.manual_seed_all(SEED)
@@ -649,12 +848,16 @@ def main() -> int:
     print(f"GPU: {gpu['device']} {gpu['sm']} {gpu['vram_GiB']:.2f} GiB", flush=True)
     print(f"Selected levels: {json.dumps(context['selected_levels'], sort_keys=True)}", flush=True)
     print("Oracle: running exact FP32 representation comparison", flush=True)
+    _phase("oracle")
     oracle = _oracle(context["selected_levels"], control_levels, torch.device("cuda"))
     print(f"Oracle: PASS forward_rel_l2={oracle['forward_rel_l2']:.3e} dq_rel_l2={oracle['dq_rel_l2']:.3e} dv_rel_l2={oracle['dv_rel_l2']:.3e}", flush=True)
 
+    _phase("data")
     data = CANONICAL["load_corpus"]()
+    _phase("initialization")
     init = CANONICAL["canonical_init"]()
     model = _load_model(context["selected_levels"], control_levels, init)
+    _phase("initial_loss")
     initial_loss = float(CANONICAL["initial_loss"](model, data))
     print(f"Initial loss: {initial_loss:.9f} reference={EXPECTED_INITIAL_A_LOSS:.9f}", flush=True)
     if abs(initial_loss - EXPECTED_INITIAL_A_LOSS) > float(CANONICAL["INITIAL_LOSS_TOL"]):
@@ -662,12 +865,20 @@ def main() -> int:
     benchmark = _benchmark_b32(model, data)
     if benchmark["peak_GiB"] >= gpu["vram_GiB"]:
         raise RuntimeError(f"memory gate failed: peak {benchmark['peak_GiB']:.3f} GiB >= capacity {gpu['vram_GiB']:.3f} GiB")
+    _phase("free")
+    del model, data, init
+    import gc
+    gc.collect()
+    torch.cuda.empty_cache()
+    torch.cuda.synchronize()
+    _phase("free_complete")
 
     result: dict[str, Any] = {
         "schema_version": 1,
         "plan_id": PLAN_ID,
         "source_commit": candidate_commit,
         "run_id": context["run_id"],
+        "attempt_id": context["attempt_id"],
         "arm_id": context["arm_id"],
         "block_id": context["block_id"],
         "within_block_position": context["within_block_position"],
@@ -685,6 +896,7 @@ def main() -> int:
         "warmups": benchmark["warmups"],
         "timed_repetitions": benchmark["timed_repetitions"],
         "benchmark": benchmark["benchmark"],
+        "telemetry": {"phases": PHASE_EVENTS},
         "memory": {
             "status": "PASS",
             "peak_GiB": benchmark["peak_GiB"],
@@ -706,6 +918,9 @@ def main() -> int:
 if __name__ == "__main__":
     try:
         raise SystemExit(main())
-    except Exception as exc:
+    except BaseException as exc:
+        failure_path = _write_failure_artifact(exc)
+        if failure_path:
+            print(f"Failure artifact: {failure_path}", file=sys.stderr, flush=True)
         print(f"FAIL_CLOSED: {type(exc).__name__}: {exc}", file=sys.stderr, flush=True)
         raise
