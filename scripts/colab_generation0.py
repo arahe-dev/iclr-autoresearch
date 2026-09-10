@@ -1,7 +1,8 @@
 """One self-contained Google Colab cell for the repaired Generation-0 run.
 
 Paste this entire file into one Colab cell.  It mounts the frozen Drive
-corpus, securely fetches the private repository when needed, creates fresh
+corpus, fetches the public repository anonymously (or securely falls back
+to a short-lived askpass helper when authentication is needed), creates fresh
 planning/candidate worktrees at the pinned harness commit, and delegates all
 execution to the fail-closed supervisor.  It never deletes an existing
 campaign or silently retries a failed slot.
@@ -12,9 +13,11 @@ campaign or silently retries a failed slot.
 from __future__ import annotations
 
 from getpass import getpass
+import hashlib
 import json
 import os
 from pathlib import Path
+import signal
 import shutil
 import stat
 import subprocess
@@ -35,6 +38,13 @@ PLANNING_ROOT = Path(f"/content/iclr-g0-planning-{HARNESS_COMMIT[:12]}")
 CANDIDATE_ROOT = Path(f"/content/iclr-g0-candidate-{HARNESS_COMMIT[:12]}")
 CANDIDATE_BRANCH = f"codex/generation0/colab-{HARNESS_COMMIT[:12]}"
 CAMPAIGN_ROOT = DRIVE_ROOT / "experiments/generation0" / f"iclr-g0-{HARNESS_COMMIT[:12]}"
+
+# Keep this false for normal resumes. Set it to true only after inspecting a
+# deliberate treatment repair; the supervisor still retries only the failed
+# ordered slot and never skips it.
+RETRY_FAILED = False
+GPU_UUID: str | None = None
+GPU_INDEX: int | None = None
 
 
 def run(command: list[str], *, cwd: Path | None = None, env: dict[str, str] | None = None) -> str:
@@ -59,11 +69,74 @@ def git(cwd: Path, *arguments: str, env: dict[str, str] | None = None) -> str:
 def assert_clean_checkout(path: Path, expected_commit: str) -> None:
     if not path.is_dir() or not (path / ".git").exists():
         raise RuntimeError(f"expected existing Git checkout is missing: {path}")
+    top = Path(git(path, "rev-parse", "--show-toplevel")).resolve()
+    if top != path.resolve():
+        raise RuntimeError(f"checkout path is not the expected worktree: {path}")
     if git(path, "status", "--porcelain"):
         raise RuntimeError(f"refusing to reuse a dirty checkout: {path}")
     actual = git(path, "rev-parse", "HEAD")
     if actual != expected_commit:
         raise RuntimeError(f"checkout {path} is at {actual}, expected pinned {expected_commit}")
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1 << 20), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def assert_canonical_checkout(path: Path, contract: dict[str, object]) -> None:
+    canonical = contract.get("canonical_source")
+    if not isinstance(canonical, dict):
+        raise RuntimeError("pinned checkout has no canonical-source contract")
+    relative = canonical.get("path")
+    expected = canonical.get("sha256")
+    source = path / str(relative)
+    if not source.is_file() or sha256_file(source) != expected:
+        raise RuntimeError(f"canonical source hash mismatch in checkout: {source}")
+
+
+def assert_frozen_corpus(planning: Path) -> None:
+    contract = json.loads((planning / "configs/frozen_contract.json").read_text(encoding="utf-8"))
+    frozen_path = CORPUS_ROOT / "FROZEN.json"
+    frozen = json.loads(frozen_path.read_text(encoding="utf-8"))
+    data = contract.get("data")
+    if not isinstance(data, dict):
+        raise RuntimeError("pinned frozen contract has no data section")
+    expected = {
+        "status": "FROZEN",
+        "corpus_id": data["corpus_id"],
+        "context_length": data["context_length"],
+        "tokenizer_sha256": data["tokenizer_sha256"],
+        "logical_replay_sha256": data["logical_replay_sha256"],
+    }
+    for key, value in expected.items():
+        if frozen.get(key) != value:
+            raise RuntimeError(f"frozen corpus contract mismatch: {key}")
+    required = (
+        CORPUS_ROOT / "train" / "shard_000000.tokens.bin",
+        CORPUS_ROOT / "train" / "shard_000000.valid_lengths.bin",
+        CORPUS_ROOT / "train" / "shard_000000.provenance.parquet",
+    )
+    missing = [str(path) for path in required if not path.is_file()]
+    if missing:
+        raise RuntimeError(f"frozen corpus artifacts are missing: {missing}")
+    print("Frozen corpus contract passed.", flush=True)
+
+
+def _is_authentication_error(error: BaseException) -> bool:
+    text = str(error).lower()
+    return any(marker in text for marker in (
+        "could not read username", "authentication failed", "repository not found",
+        "terminal prompts disabled", "http 401", "http 403", "403 forbidden",
+    ))
+
+
+def assert_full_sha(value: str, label: str) -> None:
+    if len(value) != 40 or any(char not in "0123456789abcdef" for char in value.lower()):
+        raise RuntimeError(f"{label} must be a full 40-character hexadecimal Git SHA")
 
 
 def credentials_if_needed() -> tuple[dict[str, str], Path | None]:
@@ -75,15 +148,20 @@ def credentials_if_needed() -> tuple[dict[str, str], Path | None]:
     helper_fd, helper_name = tempfile.mkstemp(prefix="iclr-git-askpass-", suffix=".sh")
     os.close(helper_fd)
     helper = Path(helper_name)
-    helper.write_text(
-        "#!/bin/sh\n"
-        "case \"$1\" in\n"
-        "  *Username*) printf '%s\\n' \"$GITHUB_USER\" ;;\n"
-        "  *) printf '%s\\n' \"$GITHUB_TOKEN\" ;;\n"
-        "esac\n",
-        encoding="utf-8",
-    )
-    helper.chmod(stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
+    try:
+        helper.write_text(
+            "#!/bin/sh\n"
+            "case \"$1\" in\n"
+            "  *Username*) printf '%s\\n' \"$GITHUB_USER\" ;;\n"
+            "  *) printf '%s\\n' \"$GITHUB_TOKEN\" ;;\n"
+            "esac\n",
+            encoding="utf-8",
+        )
+        helper.chmod(stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
+    except BaseException:
+        if helper.exists():
+            helper.unlink()
+        raise
     auth_env = os.environ.copy()
     auth_env.update({
         "GIT_ASKPASS": str(helper),
@@ -94,13 +172,46 @@ def credentials_if_needed() -> tuple[dict[str, str], Path | None]:
     return auth_env, helper
 
 
+def clone_repository() -> None:
+    """Clone anonymously when possible, with an ephemeral authenticated fallback."""
+    if REPO_STORE.exists():
+        raise RuntimeError(f"refusing to clone over an existing path: {REPO_STORE}")
+    stage_parent = Path(tempfile.mkdtemp(prefix="iclr-g0-clone-", dir="/content"))
+    anonymous = stage_parent / "anonymous"
+    authenticated = stage_parent / "authenticated"
+    helper: Path | None = None
+    auth_env: dict[str, str] | None = None
+    clone_args = lambda destination: [
+        "git", "clone", "--no-checkout", "--no-tags", REPOSITORY, str(destination)
+    ]
+    try:
+        anonymous_env = os.environ.copy()
+        anonymous_env["GIT_TERMINAL_PROMPT"] = "0"
+        try:
+            run(clone_args(anonymous), env=anonymous_env)
+            source = anonymous
+        except RuntimeError as anonymous_error:
+            if not _is_authentication_error(anonymous_error):
+                raise
+            auth_env, helper = credentials_if_needed()
+            run(clone_args(authenticated), env=auth_env)
+            source = authenticated
+        os.replace(source, REPO_STORE)
+    finally:
+        if helper is not None and helper.exists():
+            helper.unlink()
+        if auth_env is not None:
+            auth_env.pop("GITHUB_TOKEN", None)
+        if stage_parent.exists():
+            shutil.rmtree(stage_parent)
+
+
 def ensure_source_checkout() -> None:
     auth_env: dict[str, str] | None = None
     helper: Path | None = None
     try:
         if not REPO_STORE.exists():
-            auth_env, helper = credentials_if_needed()
-            run(["git", "clone", "--no-checkout", REPOSITORY, str(REPO_STORE)], env=auth_env)
+            clone_repository()
         elif not (REPO_STORE / ".git").exists():
             raise RuntimeError(f"refusing to use a non-Git path: {REPO_STORE}")
 
@@ -113,13 +224,20 @@ def ensure_source_checkout() -> None:
         except RuntimeError:
             needs_fetch = True
         if needs_fetch:
-            if auth_env is None:
-                auth_env, helper = credentials_if_needed()
-            run([
+            fetch = [
                 "git", "-C", str(REPO_STORE), "fetch", "--prune", "origin",
                 f"refs/heads/{HARNESS_BRANCH}:refs/remotes/origin/{HARNESS_BRANCH}",
                 f"refs/heads/{CHAMPION_BRANCH}:refs/remotes/origin/{CHAMPION_BRANCH}",
-            ], env=auth_env)
+            ]
+            anonymous_env = os.environ.copy()
+            anonymous_env["GIT_TERMINAL_PROMPT"] = "0"
+            try:
+                run(fetch, env=anonymous_env)
+            except RuntimeError as anonymous_error:
+                if not _is_authentication_error(anonymous_error):
+                    raise
+                auth_env, helper = credentials_if_needed()
+                run(fetch, env=auth_env)
 
         if git(REPO_STORE, "rev-parse", harness_ref) != HARNESS_COMMIT:
             raise RuntimeError("remote harness branch is not the pinned commit")
@@ -137,6 +255,8 @@ def ensure_source_checkout() -> None:
             assert_clean_checkout(PLANNING_ROOT, HARNESS_COMMIT)
         else:
             run(["git", "-C", str(REPO_STORE), "worktree", "add", "--detach", str(PLANNING_ROOT), HARNESS_COMMIT])
+        contract = json.loads((PLANNING_ROOT / "configs/frozen_contract.json").read_text(encoding="utf-8"))
+        assert_canonical_checkout(PLANNING_ROOT, contract)
 
         if CANDIDATE_ROOT.exists():
             assert_clean_checkout(CANDIDATE_ROOT, HARNESS_COMMIT)
@@ -153,6 +273,7 @@ def ensure_source_checkout() -> None:
             else:
                 run(["git", "-C", str(REPO_STORE), "worktree", "add", "-b", CANDIDATE_BRANCH, str(CANDIDATE_ROOT), HARNESS_COMMIT])
         assert_clean_checkout(CANDIDATE_ROOT, HARNESS_COMMIT)
+        assert_canonical_checkout(CANDIDATE_ROOT, contract)
     finally:
         if helper is not None and helper.exists():
             helper.unlink()
@@ -160,19 +281,63 @@ def ensure_source_checkout() -> None:
             auth_env.pop("GITHUB_TOKEN", None)
 
 
+def stop_process_group(process: subprocess.Popen[object]) -> None:
+    """Stop only the supervisor tree started by this cell."""
+    if process.poll() is not None:
+        return
+    if os.name == "posix":
+        try:
+            os.killpg(process.pid, signal.SIGTERM)
+        except ProcessLookupError:
+            return
+        try:
+            process.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            try:
+                os.killpg(process.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            process.wait(timeout=5)
+    else:
+        subprocess.run(
+            ["taskkill", "/PID", str(process.pid), "/T", "/F"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=False,
+        )
+        process.wait(timeout=10)
+
+
+def run_supervisor(command: list[str], *, cwd: Path, env: dict[str, str]) -> None:
+    options: dict[str, object] = {}
+    if os.name == "posix":
+        options["start_new_session"] = True
+    else:
+        options["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
+    process = subprocess.Popen(command, cwd=str(cwd), env=env, **options)
+    try:
+        returncode = process.wait()
+    except KeyboardInterrupt:
+        stop_process_group(process)
+        raise
+    if returncode:
+        raise RuntimeError(f"Generation-0 supervisor stopped fail-closed with exit code {returncode}")
+
+
 def main() -> None:
     from google.colab import drive
 
-    if not (Path("/content/drive") / "MyDrive").exists():
+    if not (Path("/content/drive") / "MyDrive").is_dir():
         drive.mount("/content/drive", force_remount=False)
     if not DRIVE_ROOT.exists():
         raise RuntimeError(f"required shared Drive path is missing: {DRIVE_ROOT}")
-    if not (CORPUS_ROOT / "FROZEN.json").exists():
+    if not (CORPUS_ROOT / "FROZEN.json").is_file():
         raise RuntimeError(f"frozen corpus manifest is missing: {CORPUS_ROOT / 'FROZEN.json'}")
-    if len(HARNESS_COMMIT) != 40 or len(CHAMPION_COMMIT) != 40:
-        raise RuntimeError("pinned Git commits must be full 40-character SHAs")
+    assert_full_sha(HARNESS_COMMIT, "HARNESS_COMMIT")
+    assert_full_sha(CHAMPION_COMMIT, "CHAMPION_COMMIT")
 
     ensure_source_checkout()
+    assert_frozen_corpus(PLANNING_ROOT)
     CAMPAIGN_ROOT.mkdir(parents=True, exist_ok=True)
     command_template = f"{shutil.which('python3') or '/usr/bin/python3'} -u scripts/generation0_candidate_runner.py"
     supervisor = [
@@ -187,17 +352,27 @@ def main() -> None:
         "--artifact-root", str(CAMPAIGN_ROOT / "artifacts"),
         "--corpus-root", str(CORPUS_ROOT),
     ]
+    if GPU_UUID:
+        supervisor.extend(["--gpu-uuid", GPU_UUID])
+    if GPU_INDEX is not None:
+        supervisor.extend(["--gpu-index", str(GPU_INDEX)])
+    if RETRY_FAILED:
+        supervisor.append("--retry-failed")
     print(json.dumps({
         "plan_id": PLAN_ID,
         "harness_commit": HARNESS_COMMIT,
         "champion_commit": CHAMPION_COMMIT,
         "candidate_root": str(CANDIDATE_ROOT),
         "campaign_root": str(CAMPAIGN_ROOT),
+        "retry_failed": RETRY_FAILED,
         "note": "No failed slot is retried automatically; the supervisor stops at the first violation.",
     }, indent=2, sort_keys=True))
-    completed = subprocess.run(supervisor, text=True, check=False)
-    if completed.returncode:
-        raise RuntimeError(f"Generation-0 stopped fail-closed with exit code {completed.returncode}")
+    environment = os.environ.copy()
+    environment.update({
+        "ICRL_CORPUS_ROOT": str(CORPUS_ROOT),
+        "PYTHONUNBUFFERED": "1",
+    })
+    run_supervisor(supervisor, cwd=PLANNING_ROOT, env=environment)
 
 
 main()
