@@ -40,7 +40,15 @@ class GpuSnapshot:
 
     @property
     def vram_gib(self) -> float:
-        return self.total_mib / 1024.0
+        """Return the torch-free runtime capacity exposed to a worker.
+
+        ``nvidia-smi memory.total`` includes driver-reserved memory that is
+        not addressable through CUDA.  For the idle, locked GPU,
+        ``memory.free`` is the supervisor's torch-free representation of the
+        capacity that the worker's CUDA runtime can address.  Keep
+        ``memory_total_MiB`` in ``as_dict`` as the physical inventory value.
+        """
+        return self.free_mib / 1024.0
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -173,6 +181,8 @@ def select_target_gpu(*, gpu_uuid: str | None = None, gpu_index: int | None = No
         raise NvidiaSmiError(f"target execution requires {EXPECTED_GPU_NAME}; found {gpu.name}")
     if gpu.total_mib < MIN_VRAM_MIB:
         raise NvidiaSmiError(f"target GPU has less than 90 GiB VRAM: {gpu.total_mib / 1024:.2f} GiB")
+    if gpu.free_mib < MIN_VRAM_MIB:
+        raise NvidiaSmiError(f"target GPU has less than 90 GiB usable VRAM: {gpu.free_mib / 1024:.2f} GiB")
     return gpu
 
 

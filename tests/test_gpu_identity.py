@@ -84,6 +84,39 @@ class GpuIdentityTests(unittest.TestCase):
                 with self.subTest(field=field, value=value), self.assertRaises(ValueError):
                     _validate_preflight(bad, self.gpu, bad["corpus"], self.candidate["candidate_commit"])
 
+    def test_runtime_capacity_uses_idle_free_memory_and_preserves_identity_gates(self):
+        locked_snapshot = GpuSnapshot(
+            self.target.uuid, EXPECTED_GPU_NAME, 97887, 0, 97251, "synthetic"
+        )
+        locked = locked_snapshot.as_dict()
+        runtime = {
+            "device": EXPECTED_GPU_NAME,
+            "sm": "sm_120",
+            "gpu_uuid": self.target.uuid,
+            "torch": "synthetic-torch",
+            "cuda": "synthetic-cuda",
+            "vram_GiB": 94.97076416015625,
+        }
+
+        self.assertEqual(locked["memory_total_MiB"], 97887)
+        self.assertEqual(locked["memory_free_MiB"], 97251)
+        self.assertEqual(locked["vram_GiB"], 97251 / 1024)
+        validate_gpu(runtime, locked)
+
+        # The physical nvidia-smi total is intentionally not the worker's
+        # CUDA-addressable capacity and must not be accepted as a match.
+        with self.assertRaises(ValueError):
+            validate_gpu({**runtime}, {**locked, "vram_GiB": 97887 / 1024})
+
+        for key, value in (
+            ("device", "wrong GPU"),
+            ("gpu_uuid", "GPU-aaaaaaaa-1234-1234-1234-123456789abc"),
+            ("sm", "sm_90"),
+        ):
+            with self.subTest(key=key):
+                with self.assertRaises(ValueError):
+                    validate_gpu({**runtime, key: value}, locked)
+
     def test_worker_uses_actual_cuda_properties_with_exact_name(self):
         # Compile the real identity functions in isolation so this test has no
         # PyTorch dependency and cannot initialize CUDA or run the model loader.

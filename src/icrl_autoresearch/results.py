@@ -69,7 +69,8 @@ def validate_gpu(gpu: Any, locked: dict[str, Any] | None = None) -> None:
     if locked is not None:
         if gpu["gpu_uuid"] != locked.get("uuid") or gpu["device"] != locked.get("name", locked.get("device")):
             raise ValueError("worker GPU identity disagrees with the locked physical GPU")
-        # nvidia-smi rounds total VRAM to MiB; CUDA reports bytes.
+        # The supervisor uses idle nvidia-smi memory.free as its torch-free
+        # capacity source; nvidia-smi reports MiB while CUDA reports bytes.
         if abs(gpu["vram_GiB"] - _finite_positive(locked.get("vram_GiB"), "locked GPU VRAM")) > 1 / 1024:
             raise ValueError("worker GPU capacity disagrees with the locked physical GPU")
 
