@@ -43,7 +43,13 @@ def main() -> int:
     parser.add_argument("--gpu-uuid", help="physical target GPU UUID")
     parser.add_argument("--gpu-index", type=int, help="physical nvidia-smi GPU index")
     parser.add_argument("--timeout-seconds", type=float, default=60 * 60, help="per-worker wall-clock timeout")
-    parser.add_argument("--retry-failed", action="store_true", help="explicitly retry the sticky failed next slot")
+    retry_mode = parser.add_mutually_exclusive_group()
+    retry_mode.add_argument("--retry-failed", action="store_true", help="explicitly retry the sticky failed next slot")
+    retry_mode.add_argument(
+        "--preflight-only",
+        action="store_true",
+        help="run and validate candidate preflight, persist campaign setup, then stop before benchmarks",
+    )
     parser.add_argument("--limit", type=int, help="optional prefix of the frozen 50-slot C15 order (original slot IDs retained)")
     args = parser.parse_args()
 
@@ -74,6 +80,7 @@ def main() -> int:
         gpu_index=args.gpu_index,
         timeout_seconds=args.timeout_seconds,
         retry_failed=args.retry_failed,
+        preflight_only=args.preflight_only,
     )
     print(json.dumps(result, indent=2, sort_keys=True))
     return 0

@@ -742,6 +742,7 @@ def execute_plan(
     corpus_root: Path | None = None,
     timeout_seconds: float = DEFAULT_TIMEOUT_SECONDS,
     retry_failed: bool = False,
+    preflight_only: bool = False,
     gpu_uuid: str | None = None,
     gpu_index: int | None = None,
     preflight_required: bool = True,
@@ -750,6 +751,10 @@ def execute_plan(
     gpu_info: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Execute the next ordered prefix of slots and stop on every violation."""
+    if preflight_only and retry_failed:
+        raise ValueError("preflight_only cannot be combined with retry_failed")
+    if preflight_only and not preflight_required:
+        raise ValueError("preflight_only requires candidate preflight")
     selected_plan = plan or build_plan()
     assert_control_treatment(selected_plan)
     if selected_plan.get("execution_allowed") is not True or selected_plan.get("execution_requires_explicit_flag") is not True:
@@ -956,6 +961,31 @@ def execute_plan(
                         "updated_at": _utcnow(),
                     }
                     _atomic_json(paths["state"], state)
+
+                if preflight_only:
+                    state["completed_run_ids"] = [record["run_id"] for record in records]
+                    state["failed_run_id"] = None
+                    state["status"] = "COMPLETE" if len(records) == len(slots) else "PARTIAL" if records else "READY"
+                    state["updated_at"] = _utcnow()
+                    _atomic_json(paths["state"], state)
+                    summary = {
+                        "status": "PREFLIGHT_ONLY",
+                        "preflight_only": True,
+                        "campaign_status": state["status"],
+                        "plan_id": selected_plan["plan_id"],
+                        "executed_run_ids": [],
+                        "skipped_existing_run_ids": [],
+                        "completed_count": len(records),
+                        "total_slots": len(slots),
+                        "ledger": str(ledger),
+                        "manifest": str(paths["manifest"]),
+                        "state": str(paths["state"]),
+                        "console_log": str(paths["console"]),
+                        "champion_immutable": True,
+                    }
+                    console.write(json.dumps(summary, sort_keys=True) + "\n")
+                    console.flush()
+                    return summary
 
                 executed: list[str] = []
                 skipped: list[str] = []

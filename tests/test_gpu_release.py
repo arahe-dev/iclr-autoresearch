@@ -16,7 +16,7 @@ from icrl_autoresearch.processes import ProcessResult
 
 
 class GpuReleaseTests(unittest.TestCase):
-    def campaign(self, stage, fault=None, *, release_fails=False):
+    def campaign(self, stage, fault=None, *, release_fails=False, preflight_only=False):
         payload, _, candidate, gpu, _, identity, _ = worker_fixture()
         provenance = identity["provenance"]
         plan = build_plan()
@@ -98,16 +98,28 @@ class GpuReleaseTests(unittest.TestCase):
             stack.enter_context(patch.object(harness, "append_result", side_effect=admit))
             args = ("synthetic-worker", root / "candidate", root / "campaign" / "results.jsonl")
             expected_order = [("process", "preflight"), ("release", "preflight")]
-            if stage == "benchmark":
+            if stage == "benchmark" and not preflight_only:
                 expected_order += [("process", "benchmark"), ("release", "benchmark")]
-            if fault == "admission" or (fault is None and not release_fails):
+            if not preflight_only and (fault == "admission" or (fault is None and not release_fails)):
                 expected_order.append(("admission", "benchmark"))
 
             if fault is None and not release_fails:
-                result = harness.execute_plan(*args, plan=plan, limit=1)
-                self.assertEqual(result["status"], "PARTIAL")
-                self.assertEqual(result["completed_count"], 1)
-                self.assertTrue(args[2].exists())
+                result = harness.execute_plan(*args, plan=plan, limit=1, preflight_only=preflight_only)
+                if preflight_only:
+                    self.assertEqual(result["status"], "PREFLIGHT_ONLY")
+                    self.assertTrue(result["preflight_only"])
+                    self.assertEqual(result["campaign_status"], "READY")
+                    self.assertEqual(result["completed_count"], 0)
+                    self.assertFalse(args[2].exists())
+                    manifest = json.loads((args[2].parent / "generation0_manifest.json").read_text())
+                    self.assertEqual(manifest["status"], "READY")
+                    state = json.loads((args[2].parent / "generation0_state.json").read_text())
+                    self.assertEqual(state["status"], "READY")
+                    self.assertEqual(state["completed_run_ids"], [])
+                else:
+                    self.assertEqual(result["status"], "PARTIAL")
+                    self.assertEqual(result["completed_count"], 1)
+                    self.assertTrue(args[2].exists())
             else:
                 error_type = {
                     "nonzero": RuntimeError, "timeout": TimeoutError,
@@ -157,6 +169,17 @@ class GpuReleaseTests(unittest.TestCase):
 
     def test_success_releases_both_workers_before_ledger_admission(self):
         self.campaign("benchmark")
+
+    def test_preflight_only_stops_before_benchmark_and_rejects_retry(self):
+        self.campaign("preflight", preflight_only=True)
+        with self.assertRaisesRegex(ValueError, "preflight_only.*retry_failed"):
+            harness.execute_plan(
+                "synthetic-worker",
+                Path("unused-candidate"),
+                Path("unused-ledger"),
+                preflight_only=True,
+                retry_failed=True,
+            )
 
 
 if __name__ == "__main__":

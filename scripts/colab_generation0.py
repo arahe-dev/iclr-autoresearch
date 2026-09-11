@@ -32,9 +32,10 @@ import tempfile
 REPOSITORY = "https://github.com/arahe-dev/iclr-autoresearch.git"
 HARNESS_BRANCH = "codex/generation0/sm120-runner-20260909"
 HARNESS_COMMIT = os.environ.get(
-    "ICRL_G0_HARNESS_COMMIT", "4ad29eb0aeef1f6f6a1e1512f8136556741afc66"
+    "ICRL_G0_HARNESS_COMMIT", "c4afb7b34d2fdecc7baa55546c4e8b1e9816ff84"
 )
 EXECUTE = False
+PREFLIGHT_ONLY = True
 CHAMPION_BRANCH = "codex/champion/0000-validated-bdh-baseline"
 CHAMPION_COMMIT = "908b0b1438ba038d319adf97787aac08f213b590"
 PLAN_ID = "G0-L8-SM120-EXACT-B32-C15"
@@ -45,7 +46,7 @@ REPO_STORE = Path(f"/content/iclr-g0-repository-{HARNESS_COMMIT[:12]}")
 PLANNING_ROOT = Path(f"/content/iclr-g0-planning-{HARNESS_COMMIT[:12]}")
 CANDIDATE_ROOT = Path(f"/content/iclr-g0-candidate-{HARNESS_COMMIT[:12]}")
 CANDIDATE_BRANCH = f"codex/generation0/colab-{HARNESS_COMMIT[:12]}"
-CAMPAIGN_ROOT = DRIVE_ROOT / "experiments/generation0" / f"iclr-g0-c15-{HARNESS_COMMIT[:12]}"
+CAMPAIGN_ROOT = DRIVE_ROOT / "experiments/generation0" / f"iclr-g0-c15-capacityfix-{HARNESS_COMMIT[:12]}"
 
 # Keep this false for normal resumes. Set it to true only after inspecting a
 # deliberate treatment repair; the supervisor still retries only the failed
@@ -394,6 +395,7 @@ def main() -> None:
             "excluded_cell": "G0-F05 (structurally infeasible; no imputed result)",
             "design": "constrained rank-complete; missing-cell caveat; no exact orthogonality or de-aliasing",
             "harness_commit": HARNESS_COMMIT,
+            "preflight_only": PREFLIGHT_ONLY,
             "manual_run": "The cell is pinned to this harness commit; set EXECUTE=True for a later manual run.",
             "preserved_campaign": "iclr-g0-0ce16e9922b2",
         }, indent=2, sort_keys=True))
@@ -439,7 +441,9 @@ def main() -> None:
         supervisor.extend(["--gpu-uuid", GPU_UUID])
     if GPU_INDEX is not None:
         supervisor.extend(["--gpu-index", str(GPU_INDEX)])
-    if RETRY_FAILED:
+    if PREFLIGHT_ONLY:
+        supervisor.append("--preflight-only")
+    elif RETRY_FAILED:
         supervisor.append("--retry-failed")
     print(json.dumps({
         "plan_id": PLAN_ID,
@@ -448,6 +452,7 @@ def main() -> None:
         "python_executable": sys.executable,
         "candidate_root": str(CANDIDATE_ROOT),
         "campaign_root": str(CAMPAIGN_ROOT),
+        "preflight_only": PREFLIGHT_ONLY,
         "retry_failed": RETRY_FAILED,
         "note": "No failed slot is retried automatically; the supervisor stops at the first violation.",
     }, indent=2, sort_keys=True))
