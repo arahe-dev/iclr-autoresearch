@@ -8,7 +8,7 @@ from typing import Any
 
 from .contract import REPO_ROOT, assert_science_unchanged, contract_sha256, load_contract, source_sha256
 from .decisions import evaluate_report
-from .generation0 import assert_control_treatment, build_plan
+from .generation0 import BASE_COMMIT, CHAMPION_BRANCH, PLAN_ID, assert_control_treatment, build_plan
 
 
 def read_json(path: Path) -> dict[str, Any]:
@@ -68,9 +68,9 @@ def validate_repo(root: Path = REPO_ROOT) -> dict[str, Any]:
 
     plan = build_plan()
     assert_control_treatment(plan)
-    if plan["base_commit"] != "908b0b1" or plan["execution_allowed"] is not True or plan["execution_requires_explicit_flag"] is not True:
+    if plan["base_commit"] != BASE_COMMIT or plan["execution_allowed"] is not True or plan["execution_requires_explicit_flag"] is not True:
         raise ValueError("Generation-0 plan is not anchored and explicitly gated")
-    if len(plan["arms"]) != 16 or len(plan["run_order"]) != 52:
+    if len(plan["arms"]) != 15 or len(plan["run_order"]) != 50:
         raise ValueError("unexpected Generation-0 matrix or run-order size")
     if any("blocked" in json.dumps(arm["patch_spec"]).lower() for arm in plan["arms"]):
         # The word is allowed only in the forbidden-operation explanation; no
@@ -80,6 +80,18 @@ def validate_repo(root: Path = REPO_ROOT) -> dict[str, Any]:
             if "blocked" in selected or "prefix" in selected or "chunked" in selected:
                 raise ValueError(f"killed branch leaked into selected arm {arm['arm_id']}")
     result_manifest = read_json(root / "results/generation0_manifest.json")
+    if result_manifest.get("plan_id") != PLAN_ID:
+        raise ValueError("Generation-0 result manifest belongs to a different plan")
+    if result_manifest.get("champion_commit") != BASE_COMMIT or result_manifest.get("champion_branch") != CHAMPION_BRANCH:
+        raise ValueError("Generation-0 result manifest must identify the immutable champion")
+    expected_views = {
+        "matrix.json": plan,
+        "run_order.json": {"plan_id": PLAN_ID, "runs": plan["run_order"]},
+        "arm_patch_specs.json": {"plan_id": PLAN_ID, "arms": [{"arm_id": arm["arm_id"], "patch_spec": arm["patch_spec"]} for arm in plan["arms"]]},
+    }
+    for name, expected in expected_views.items():
+        if read_json(root / "plans/generation0" / name) != expected:
+            raise ValueError(f"generated Generation-0 view is stale: {name}")
     if (
         result_manifest.get("status") != "NO_RESULTS_YET"
         or result_manifest.get("execution_allowed") is not True

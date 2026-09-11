@@ -1,5 +1,5 @@
 {
-  "plan_id": "G0-L8-SM120-EXACT-B32",
+  "plan_id": "G0-L8-SM120-EXACT-B32-C15",
   "runs": [
     {
       "arm_id": "CONTROL",
@@ -40,16 +40,6 @@
       "randomization_seed": 20260909,
       "run_id": "G0-R04",
       "within_block_position": 4
-    },
-    {
-      "arm_id": "G0-F05",
-      "block_id": 1,
-      "control_interleaved": false,
-      "kind": "arm",
-      "oracle_required": true,
-      "randomization_seed": 20260909,
-      "run_id": "G0-R05",
-      "within_block_position": 5
     },
     {
       "arm_id": "G0-F02",
@@ -390,16 +380,6 @@
       "randomization_seed": 20260909,
       "run_id": "G0-R39",
       "within_block_position": 13
-    },
-    {
-      "arm_id": "G0-F05",
-      "block_id": 2,
-      "control_interleaved": false,
-      "kind": "arm",
-      "oracle_required": true,
-      "randomization_seed": 20260909,
-      "run_id": "G0-R40",
-      "within_block_position": 14
     },
     {
       "arm_id": "G0-06",

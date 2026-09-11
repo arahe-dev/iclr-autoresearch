@@ -1,5 +1,6 @@
 {
   "schema_version": 1,
+  "plan_id": "G0-L8-SM120-EXACT-B32-C15",
   "generation": 0,
   "status": "READY_FOR_EXPLICIT_EXECUTION",
   "purpose": "Taguchi-style L8 screening plan around exact execution representations only",
@@ -8,10 +9,18 @@
   "execution_allowed": true,
   "execution_requires_explicit_flag": true,
   "execution_mode": "candidate_worktree_only_gpu_harness",
-  "design": "L8(2^7) orthogonal array plus an 8-arm full foldover; 0000 control anchor; randomized/interleaved replicated blocks; no champion mutation",
+  "design": "Constrained rank-complete L8(2^7) plus original foldover minus structurally infeasible G0-F05; 15 arms, 50 slots, 20 original controls; no exact orthogonality or de-aliasing claim",
+  "excluded_cells": [{
+    "arm_id": "G0-F05",
+    "level_string": "0100101",
+    "status": "STRUCTURALLY_INFEASIBLE",
+    "reason": "Observed B32 warmup OOM for the joint frozen treatment on the target SM120 GPU",
+    "evidence_campaign": "iclr-g0-0ce16e9922b2",
+    "result_policy": "excluded, never imputed or admitted as a measured result"
+  }],
   "control_reference": {
     "experiment_id": "0000",
-    "champion_commit": "908b0b1",
+    "champion_commit": "908b0b1438ba038d319adf97787aac08f213b590",
     "champion_branch": "codex/champion/0000-validated-bdh-baseline",
     "canonical_source": "vendor/canonical/icrl_reintegrated_bdh_baseline_v1.py",
     "canonical_source_sha256": "947f8b33e740adede3e13382f8cb9e8e374d845de75e282bda5feb05c582f624",
@@ -29,12 +38,12 @@
     "control_equivalence": "byte-equivalent canonical source and behavior-equivalent exact Arm-A treatment before any factor is enabled"
   },
   "foldover": {
-    "type": "full_bitwise_complement",
+    "type": "original_bitwise_complement_minus_structurally_infeasible_F05",
     "source_rows": 8,
-    "additional_arms": 8,
-    "total_treatment_arms": 16,
-    "main_effect_two_factor_aliases_resolved": true,
-    "remaining_aliases": "two-factor interactions remain grouped within their original three-term classes"
+    "additional_arms": 7,
+    "total_treatment_arms": 15,
+    "main_effect_two_factor_aliases_resolved": false,
+    "remaining_aliases": "missing-cell caveat: main effects are no longer orthogonal to two-factor interactions; original interaction groups remain unresolved"
   },
   "objective": {
     "benchmark": "B32 exact F+B",
@@ -47,7 +56,7 @@
     "seed": 20260909,
     "blocks": 2,
     "replicates_per_arm": 2,
-    "control_interleave": "anchor before each block, after every two candidate slots, plus block-end anchor and randomized control row G0-00",
+    "control_interleave": "preserve all 20 original anchor/interleaved CONTROL slots and original run IDs/positions; remove only the two G0-F05 occurrences after randomization",
     "thermal_drift_covariate": "block_id and within-block position"
   },
   "excluded_killed_branches": [
@@ -156,16 +165,15 @@
     {"row_id": "G0-F02", "foldover_of": "G0-02", "role": "full_foldover_arm", "levels": "1010100"},
     {"row_id": "G0-F03", "foldover_of": "G0-03", "role": "full_foldover_arm", "levels": "1000011"},
     {"row_id": "G0-F04", "foldover_of": "G0-04", "role": "full_foldover_arm", "levels": "0110010"},
-    {"row_id": "G0-F05", "foldover_of": "G0-05", "role": "full_foldover_arm", "levels": "0100101"},
     {"row_id": "G0-F06", "foldover_of": "G0-06", "role": "full_foldover_arm", "levels": "0011001"},
     {"row_id": "G0-F07", "foldover_of": "G0-07", "role": "full_foldover_arm", "levels": "0001110"}
   ],
   "analysis": {
     "primary_model": "B32_latency_ms ~ main_effects + block_id + within_block_position",
     "effect_coding": "-1 control / +1 exact execution candidate",
-    "interaction_policy": "full foldover de-aliases main effects from two-factor interactions; retain the remaining three-term interaction groups as unresolved and promote only to a full factorial round",
+    "interaction_policy": "constrained design has intercept plus seven main-effect rank 8 but loses exact orthogonality and de-aliasing; retain missing-cell and interaction uncertainty; never impute F05",
     "promotion_to_full_factorial": "top factors must pass oracle, no memory regression, and have stable sign across randomized blocks",
-    "foldover_policy": "use the full foldover to de-alias main effects from two-factor interactions; do not interpret the remaining three-way interaction groups as individually identified",
-    "control_policy": "G0-00 must remain an exact 0000/908b0b1 Gram-only SAC control; any mismatch fails closed before GPU execution"
+    "foldover_policy": "retain original L8/foldover definitions except structurally infeasible F05; estimates are conditional on feasible cells and the regression model",
+    "control_policy": "G0-00 must remain an exact 0000/908b0b1438ba038d319adf97787aac08f213b590 Gram-only SAC control; any mismatch fails closed before GPU execution"
   }
 }

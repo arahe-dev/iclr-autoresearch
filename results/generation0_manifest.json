@@ -1,6 +1,8 @@
 {
   "schema_version": 1,
-  "plan_id": "G0-L8-SM120-EXACT-B32",
+  "plan_id": "G0-L8-SM120-EXACT-B32-C15",
+  "champion_commit": "908b0b1438ba038d319adf97787aac08f213b590",
+  "champion_branch": "codex/champion/0000-validated-bdh-baseline",
   "status": "NO_RESULTS_YET",
   "ledger": "results/generation0.jsonl",
   "append_only": true,

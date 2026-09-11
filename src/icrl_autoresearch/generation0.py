@@ -16,8 +16,22 @@ from .contract import REPO_ROOT, load_contract, source_sha256
 from .doe import load_generation0
 
 
-PLAN_ID = "G0-L8-SM120-EXACT-B32"
-BASE_COMMIT = "908b0b1"
+PLAN_ID = "G0-L8-SM120-EXACT-B32-C15"
+BASE_COMMIT = "908b0b1438ba038d319adf97787aac08f213b590"
+EXCLUDED_CELLS = [{
+    "arm_id": "G0-F05",
+    "level_string": "0100101",
+    "status": "STRUCTURALLY_INFEASIBLE",
+    "reason": "Observed B32 warmup OOM for the joint frozen treatment on the target SM120 GPU",
+    "evidence_campaign": "iclr-g0-0ce16e9922b2",
+    "result_policy": "excluded, never imputed or admitted as a measured result",
+}]
+MISSING_CELL_CAVEAT = (
+    "G0-F05 is structurally infeasible. The intercept plus seven main-effect columns "
+    "retain rank 8, but the constrained design is not exactly orthogonal and main "
+    "effects are not dealiased from two-factor interactions. Estimates are conditional "
+    "on the feasible cells and the regression model; do not impute the missing cell."
+)
 CHAMPION_BRANCH = "codex/champion/0000-validated-bdh-baseline"
 CANONICAL_SOURCE = "vendor/canonical/icrl_reintegrated_bdh_baseline_v1.py"
 CANONICAL_SOURCE_SHA256 = "947f8b33e740adede3e13382f8cb9e8e374d845de75e282bda5feb05c582f624"
@@ -33,9 +47,8 @@ FACTOR_ORDER = (
 )
 
 # L8(2^7): A=x, B=y, C=z, D=xy, E=xz, F=yz, G=xyz in +/-1 coding.
-# The full bitwise foldover separates every main effect from its old two-factor
-# alias group. The three two-factor terms in each group remain aliased with one
-# another and are intentionally handed off as unresolved interactions.
+# These are historical alias groups for the original complete design. Removing
+# F05 loses main-effect/interaction orthogonality; these are not a de-alias claim.
 INTERACTION_ALIAS_GROUPS = {
     "A": ["qk_backward*dy_gemm_backend", "dx_gemm_backend*e_gemm", "dy_relu_epilogue_layout*checkpoint_policy"],
     "B": ["full_symmetric_qk_sm120*dy_gemm_backend", "dx_gemm_backend*dy_relu_epilogue_layout", "e_gemm*checkpoint_policy"],
@@ -165,7 +178,7 @@ def foldover_rows(base_rows: list[dict[str, Any]] | None = None) -> list[dict[st
 
 def all_rows() -> list[dict[str, Any]]:
     base = l8_rows()
-    return base + foldover_rows(base)
+    return [row for row in base + foldover_rows(base) if row["arm_id"] != "G0-F05"]
 
 
 def _factor_map(config: dict[str, Any]) -> dict[str, dict[str, Any]]:
@@ -228,8 +241,9 @@ def patch_spec(arm: dict[str, Any], factor_map: dict[str, dict[str, Any]]) -> di
     }
 
 
-def randomized_run_order(seed: int = 20260909, blocks: int = 2) -> list[dict[str, Any]]:
-    rows = [row["arm_id"] for row in all_rows()]
+def original_run_order(seed: int = 20260909, blocks: int = 2) -> list[dict[str, Any]]:
+    """Reconstruct the original order, including F05, solely for traceability."""
+    rows = [row["arm_id"] for row in l8_rows() + foldover_rows()]
     rng = random.Random(seed)
     order = []
     run_index = 0
@@ -257,12 +271,22 @@ def randomized_run_order(seed: int = 20260909, blocks: int = 2) -> list[dict[str
     return order
 
 
+def randomized_run_order(seed: int = 20260909, blocks: int = 2) -> list[dict[str, Any]]:
+    # Filter only after shuffling and allocating every original control slot.
+    # Preserve run IDs and position covariates (gaps are deliberate).
+    return [slot for slot in original_run_order(seed, blocks) if slot["arm_id"] != "G0-F05"]
+
+
 def build_plan() -> dict[str, Any]:
     config = load_generation0()
     contract = load_contract()
     factor_map = _factor_map(config)
     if tuple(config["factor_order"]) != FACTOR_ORDER:
         raise ValueError("Generation-0 factor order drifted from the L8 generator")
+    if config.get("plan_id") != PLAN_ID or config.get("excluded_cells") != EXCLUDED_CELLS:
+        raise ValueError("Generation-0 constrained plan identity or exclusion drifted")
+    if config["randomization"]["seed"] != 20260909 or config["randomization"]["blocks"] != 2:
+        raise ValueError("Generation-0 must preserve the original randomized replicated order")
     arms = all_rows()
     control_levels = {factor["name"]: factor["levels"][0] for factor in config["factors"]}
     configured_foldover = {
@@ -307,21 +331,29 @@ def build_plan() -> dict[str, Any]:
         "objective": config["objective"],
         "randomization": config["randomization"],
         "design": {
-            "type": "Taguchi-style orthogonal array with full foldover",
-            "array": "L8(2^7) + full 8-arm foldover",
+            "type": "constrained rank-complete main-effect screening design",
+            "array": "original L8(2^7) + foldover, with G0-F05 excluded",
+            "treatment_arms": 15,
+            "control_slots": 20,
+            "run_slots": 50,
+            "main_effect_rank_with_intercept": 8,
+            "exact_orthogonality": False,
+            "missing_cell_caveat": MISSING_CELL_CAVEAT,
             "coding": "0=control, 1=exact execution candidate",
             "generators": {"A": "x", "B": "y", "C": "z", "D": "x xor y", "E": "x xor z", "F": "y xor z", "G": "x xor y xor z"},
             "factor_order": list(FACTOR_ORDER),
-            "foldover": "bitwise complement of all seven factor columns",
+            "foldover": "original bitwise complements retained except structurally infeasible G0-F05",
         },
         "factors": config["factors"],
         "predicted_effects": PREDICTED_EFFECTS,
         "interaction_aliases": {
             "column_assignment": MAIN_EFFECT_NAMES,
-            "main_effects_dealiased_from_two_factor_interactions": True,
+            "main_effects_dealiased_from_two_factor_interactions": False,
+            "missing_cell_caveat": MISSING_CELL_CAVEAT,
             "remaining_two_factor_interaction_groups": _interaction_groups(),
         },
         "excluded_killed_branches": config["excluded_killed_branches"],
+        "excluded_cells": EXCLUDED_CELLS,
         "arms": [{**arm, "patch_spec": patch_spec(arm, factor_map)} for arm in arms],
         "run_order": randomized_run_order(config["randomization"]["seed"], config["randomization"]["blocks"]),
         "result_contract": {
@@ -329,11 +361,11 @@ def build_plan() -> dict[str, Any]:
             "format": "JSONL",
             "schema": "schemas/generation0_result.schema.json",
             "one_record_per_run_id": True,
-            "required_fields": ["run_id", "arm_id", "block_id", "oracle", "latency_ms", "real_input_tok_s", "decision", "source_commit"],
+            "required_fields": ["schema_version", "plan_id", "source_commit", "harness_commit", "run_id", "arm_id", "treatment_id", "attempt_id", "block_id", "within_block_position", "selected_levels", "oracle", "latency_ms", "real_input_tok_s", "peak_GiB", "samples_ms", "warmups", "timed_repetitions", "timing", "memory", "provenance", "validation", "admission", "execution", "decision"],
         },
         "next_round_handoff": {
             "status": "WAITING_FOR_SCREENING_RESULTS",
-            "method": "fit main effects with block/position covariates; preserve alias uncertainty",
+            "method": "constrained regression of main effects with original block/position covariates; retain missing-cell and interaction uncertainty",
             "promotion_rule": "only exact-oracle-passing, memory-safe factors with stable sign across blocks",
             "interaction_round": "construct a full 2^k factorial over the selected factors; do not infer aliased interactions from L8",
             "source_commit_for_next_round": "the screening commit plus append-only result ledger",
@@ -356,6 +388,8 @@ def build_plan() -> dict[str, Any]:
 
 def assert_control_treatment(plan: dict[str, Any]) -> None:
     """Fail closed unless G0-00 is the exact imported 0000 control treatment."""
+    if plan.get("plan_id") != PLAN_ID or plan.get("excluded_cells") != EXCLUDED_CELLS:
+        raise ValueError("Generation-0 constrained plan identity or exclusion drifted")
     if plan.get("base_commit") != BASE_COMMIT:
         raise ValueError("control base commit drifted from experiment 0000")
     reference = plan.get("control_reference", {})
@@ -414,12 +448,17 @@ def assert_control_treatment(plan: dict[str, Any]) -> None:
     if reference.get("factor_levels") != expected_levels:
         raise ValueError("control reference factor levels do not match the factor catalog")
 
-    if len(arms) != 16 or len(plan.get("run_order", [])) != 52:
-        raise ValueError("Generation-0 must contain 16 treatment arms and 52 randomized run slots")
+    if len(arms) != 15 or plan.get("run_order") != randomized_run_order():
+        raise ValueError("Generation-0 must contain 15 treatment arms and the original order minus the two F05 slots")
+    expected_arms = [{**arm, "patch_spec": patch_spec(arm, _factor_map(load_generation0()))} for arm in all_rows()]
+    if arms != expected_arms or factors != load_generation0()["factors"]:
+        raise ValueError("Generation-0 arm definitions drifted from the frozen feasible treatments")
+    if plan.get("design", {}).get("exact_orthogonality") is not False or plan.get("interaction_aliases", {}).get("main_effects_dealiased_from_two_factor_interactions") is not False:
+        raise ValueError("constrained Generation-0 cannot claim exact orthogonality or de-aliasing")
     base_rows = [arm for arm in arms if not arm.get("foldover")]
     fold_rows = [arm for arm in arms if arm.get("foldover")]
-    if len(base_rows) != 8 or len(fold_rows) != 8:
-        raise ValueError("Generation-0 must contain eight base L8 rows and eight foldover rows")
+    if len(base_rows) != 8 or len(fold_rows) != 7:
+        raise ValueError("Generation-0 must contain eight base L8 rows and seven feasible foldover rows")
     for fold in fold_rows:
         source = next((row for row in base_rows if row["arm_id"] == fold.get("source_arm_id")), None)
         if source is None:

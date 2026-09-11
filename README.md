@@ -1,6 +1,6 @@
 # icrl-autoresearch
 
-Evidence-first performance research infrastructure for the exact Phase-BDH Arm-A path on an RTX PRO 6000 (`sm_120`). The repository is deliberately infrastructure-only in this initial import: it does not invent, edit, or run a new model/operator variant.
+Evidence-first performance research infrastructure for the exact Phase-BDH Arm-A path on the NVIDIA RTX PRO 6000 Blackwell Server Edition (`sm_120`). The C15 supervisor and candidate runner support explicitly authorized screening of the frozen execution factors.
 
 ## Frozen contract
 
@@ -16,7 +16,7 @@ Experiment `0001` records the exact `[B,T,H,K]` plus causal-prefix candidate: FP
 
 ## Generation-0 screen
 
-[configs/generation_0_screening.json](configs/generation_0_screening.json) and [plans/generation0/matrix.json](plans/generation0/matrix.json) define the L8(2^7) Taguchi-style screen plus its 8-arm full foldover for exact full/symmetric QK, tied-QK backward, separate Dx/Dy/E native SM120 GEMMs, Dy+ReLU epilogues/layout, and checkpoint policy. The Generation-0 low checkpoint level is the exact experiment-0000 `gram_only_sac` policy. The objective is exact B32 F+B latency: approximately 1,655 ms for the current control and approximately 728 ms at 90k real tok/s. The plan has 16 unique treatment arms and 52 randomized/interleaved-control run slots across two blocks, with oracle correctness required before timing.
+[configs/generation_0_screening.json](configs/generation_0_screening.json) and [plans/generation0/matrix.json](plans/generation0/matrix.json) define `G0-L8-SM120-EXACT-B32-C15`: the original L8 and foldover treatments with structurally infeasible `G0-F05` excluded after the observed B32 warmup OOM. There are 15 treatment arms and 50 slots across two blocks. All 20 original CONTROL slots, randomized order, run IDs and within-block positions are retained; only the two F05 occurrences are removed. The intercept plus seven main-effect columns retain rank 8. The missing cell removes exact orthogonality and main-effect/two-factor de-aliasing; estimates are conditional on the feasible cells and model. No F05 measurement is fabricated or imputed. The exact experiment-0000 `gram_only_sac` control and B32 F+B science contract remain unchanged.
 
 The plan is `READY_FOR_EXPLICIT_EXECUTION`, but execution remains fail-closed: `scripts/run_generation0.py --execute` requires a separate candidate worktree, a user-supplied GPU command, an SM120 GPU, and oracle-passing JSON output. The harness refuses all champion branches and never promotes or mutates a champion. The plan excludes every branch already killed in the evidence ledger and contains no approximate operator or architecture change. See [run_order.json](plans/generation0/run_order.json), [arm_patch_specs.json](plans/generation0/arm_patch_specs.json), and [plans/generation0/README.md](plans/generation0/README.md).
 
@@ -28,14 +28,16 @@ The reusable infrastructure lives under `src/icrl_autoresearch/`:
 - `doe.py`: Generation-0 plan generation without model execution.
 - `decisions.py`: declared keep/revert gates, including the 1.10x read gate and 90k target.
 - `git_ops.py`: candidate/champion branch naming and explicit promotion plans.
-- `generation0.py`: L8 plus full-foldover matrix, control verification, predicted effects, interaction aliases, randomized run order, and per-arm patch specs.
-- `results.py`: append-only oracle-gated JSONL result writer.
+- `generation0.py`: constrained C15 matrix, immutable control verification, missing-cell caveat, original randomized order, and per-arm patch specs.
+- `results.py` and `provenance.py`: strict version-2 append-only admission with full source/candidate and harness commits, tracked-file code hashes, frozen plan/config/contract identity, corpus manifest/file hashes, actual CUDA GPU identity, timing samples/boundaries, memory peaks, and validation/admission status.
 - `gpu_harness.py`: fail-closed SM120 supervisor; it owns the campaign lock, physical-GPU lock, ordered resume state, child process groups, preflight, attempt log, and ledger admission. It never imports PyTorch.
 - `processes.py` and `gpu.py`: durable file locks, process-tree cleanup, timeout/interrupt handling, torch-free NVIDIA discovery, and UUID-bound worker environments.
 - `scripts/run_generation0_sm120.py`: stable target-host entrypoint delegating to the same supervisor used by `run_generation0.py`.
 - `scripts/colab_generation0.py`: one self-contained Colab bootstrap pinned to a full harness SHA. It creates isolated planning/candidate worktrees, uses a short-lived askpass helper when authentication is needed, and persists campaign state, attempts, logs, and artifacts on Drive.
 
-For the Colab diagnostic repair, replace the entire old cell with the current `scripts/colab_generation0.py`. Fetching newer repository commits does not update Python functions already pasted into a notebook. The cell uses the notebook's Python interpreter for both the supervisor and candidate workers. It streams combined supervisor stdout/stderr into notebook output and appends it to `generation0_cell.log` in the existing Drive campaign directory, including failures before the harness opens `generation0_console.log`. Nonzero exits still stop fail-closed and include the last 200 output lines and transcript path in the notebook exception. The runtime harness remains pinned to `0ce16e9922b2766df24698c96bf5eac34d5eb2b4`; existing campaign evidence and explicit failed-slot retry requirements are preserved.
+The self-contained `scripts/colab_generation0.py` defaults to `EXECUTE=False`: pasting it prints preparation information without mounting Drive, cloning, probing a GPU or launching a worker. The parent must first commit this implementation. For a later manually authorized run, set `ICRL_G0_HARNESS_COMMIT` to that full 40-character SHA before pasting and set `EXECUTE=True`. The cell validates that the pinned checkout emits the C15 plan and uses a new `iclr-g0-c15-<sha>` campaign. The original `iclr-g0-0ce16e9922b2` Drive evidence campaign is immutable and explicitly refused as an output target. GPU UUID/index selection remains external, and retries remain explicit. No campaign was run as part of this implementation.
+
+Each accepted ledger record is self-contained; worker artifacts retain `PENDING_SUPERVISOR` until the parent verifies successful worker exit and GPU release. Source and corpus hashes are checked outside timed regions. Recorded CUDA-event intervals include forward, masked cross-entropy and backward; transfer, optimizer steps, zeroing gradients and cleanup remain outside those intervals. Both warmups and all five measured repetitions include wall/monotonic boundaries and allocation peaks. A legacy result cannot be mixed into the C15 ledger.
 
 ## Safe checks
 
@@ -68,4 +70,4 @@ python scripts/run_generation0_sm120.py --execute \
   --command-template 'python candidate_runner.py --run-id {run_id} --arm-id {arm_id}'
 ```
 
-The launcher writes the append-only ledger to `results/generation0.jsonl` and tees all runner output to `results/generation0_console.log`. It requires the exact RTX PRO 6000 SM120 environment and leaves the champion immutable. Each slot gets a fresh worker process; the next slot is not admitted until the worker exits, the GPU has returned to its baseline, and the result has passed every oracle/protocol/provenance gate. A failure writes an attempt-scoped artifact and sticky state; resume requires `--retry-failed` explicitly and never skips the failed ordered slot.
+The launcher writes the append-only ledger to `results/generation0.jsonl` and tees all runner output to `results/generation0_console.log`. It requires the exact NVIDIA RTX PRO 6000 Blackwell Server Edition name, SM120 and at least 90 GiB VRAM, and leaves the champion immutable. Each preflight and benchmark attempt gets a fresh worker process and must wait for physical GPU release on success, failure or interrupt. The next slot is not admitted until the worker exits, the GPU has returned to its baseline, and the result has passed every oracle/protocol/provenance gate. Accepted provenance includes the immutable champion commit and branch alongside full candidate/harness commits and source hashes. A failure writes an attempt-scoped artifact and sticky state; resume requires `--retry-failed` explicitly and never skips the failed ordered slot.

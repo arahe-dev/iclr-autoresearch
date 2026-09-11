@@ -1,36 +1,1127 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://icrl-autoresearch.local/schemas/generation0_result.schema.json",
-  "title": "Generation-0 exact-BDH screening result",
+  "title": "C15 accepted Generation-0 result (worker output is pending supervisor admission)",
   "type": "object",
-  "required": ["schema_version", "plan_id", "source_commit", "run_id", "arm_id", "block_id", "oracle", "latency_ms", "real_input_tok_s", "decision"],
+  "required": [
+    "schema_version",
+    "plan_id",
+    "source_commit",
+    "harness_commit",
+    "run_id",
+    "arm_id",
+    "treatment_id",
+    "attempt_id",
+    "block_id",
+    "within_block_position",
+    "selected_levels",
+    "oracle",
+    "latency_ms",
+    "real_input_tok_s",
+    "peak_GiB",
+    "samples_ms",
+    "warmups",
+    "timed_repetitions",
+    "timing",
+    "memory",
+    "provenance",
+    "validation",
+    "admission",
+    "execution",
+    "decision"
+  ],
   "properties": {
-    "schema_version": {"type": "integer", "const": 1},
-    "plan_id": {"type": "string", "const": "G0-L8-SM120-EXACT-B32"},
-    "source_commit": {"type": "string"},
-    "run_id": {"type": "string", "pattern": "^G0-R[0-9]{2}$"},
-    "arm_id": {"type": "string", "pattern": "^(G0-(?:[0-9]{2}|F[0-9]{2})|CONTROL)$"},
-    "block_id": {"type": "integer", "minimum": 1},
-    "within_block_position": {"type": "integer", "minimum": 1},
+    "schema_version": {
+      "type": "integer",
+      "const": 2
+    },
+    "plan_id": {
+      "const": "G0-L8-SM120-EXACT-B32-C15"
+    },
+    "source_commit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "harness_commit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "attempt_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{32}$"
+    },
+    "run_id": {
+      "type": "string",
+      "pattern": "^G0-R(0[1-46-9]|[12][0-9]|3[0-9]|4[1-9]|5[0-2])$"
+    },
+    "arm_id": {
+      "enum": [
+        "CONTROL",
+        "G0-00",
+        "G0-01",
+        "G0-02",
+        "G0-03",
+        "G0-04",
+        "G0-05",
+        "G0-06",
+        "G0-07",
+        "G0-F00",
+        "G0-F01",
+        "G0-F02",
+        "G0-F03",
+        "G0-F04",
+        "G0-F06",
+        "G0-F07"
+      ]
+    },
+    "treatment_id": {
+      "enum": [
+        "G0-00",
+        "G0-01",
+        "G0-02",
+        "G0-03",
+        "G0-04",
+        "G0-05",
+        "G0-06",
+        "G0-07",
+        "G0-F00",
+        "G0-F01",
+        "G0-F02",
+        "G0-F03",
+        "G0-F04",
+        "G0-F06",
+        "G0-F07"
+      ]
+    },
+    "block_id": {
+      "type": "integer",
+      "enum": [
+        1,
+        2
+      ]
+    },
+    "within_block_position": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 26
+    },
+    "selected_levels": {
+      "type": "object",
+      "required": [
+        "full_symmetric_qk_sm120",
+        "qk_backward",
+        "dx_gemm_backend",
+        "dy_gemm_backend",
+        "e_gemm",
+        "dy_relu_epilogue_layout",
+        "checkpoint_policy"
+      ],
+      "properties": {
+        "full_symmetric_qk_sm120": {
+          "enum": [
+            "control_full_symmetric_qk",
+            "native_sm120_full_symmetric_qk"
+          ]
+        },
+        "qk_backward": {
+          "enum": [
+            "control_tied_qk_vjp",
+            "native_tied_qk_vjp"
+          ]
+        },
+        "dx_gemm_backend": {
+          "enum": [
+            "control_dx_gemm",
+            "native_sm120_dx_gemm"
+          ]
+        },
+        "dy_gemm_backend": {
+          "enum": [
+            "control_dy_gemm",
+            "native_sm120_dy_gemm"
+          ]
+        },
+        "dy_relu_epilogue_layout": {
+          "enum": [
+            "materialized_baseline_layout",
+            "exact_dy_relu_epilogue_layout"
+          ]
+        },
+        "e_gemm": {
+          "enum": [
+            "reference_e_gemm",
+            "native_sm120_e_gemm"
+          ]
+        },
+        "checkpoint_policy": {
+          "enum": [
+            "gram_only_sac",
+            "selective_exact_projection_only"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
     "oracle": {
       "type": "object",
-      "required": ["status"],
+      "required": [
+        "status",
+        "same_document_reset",
+        "tied_qk_backward",
+        "initial_loss_gate",
+        "initial_loss",
+        "forward_rel_l2",
+        "dq_rel_l2",
+        "dv_rel_l2",
+        "projection_rel_l2",
+        "projection_grad_rel_l2",
+        "forward_max_abs"
+      ],
       "properties": {
-        "status": {"type": "string", "const": "PASS"},
-        "forward_rel_l2": {"type": "number"},
-        "dq_rel_l2": {"type": "number"},
-        "dv_rel_l2": {"type": "number"},
-        "same_document_reset": {"type": "string", "const": "PASS"},
-        "tied_qk_backward": {"type": "string", "const": "PASS"}
+        "status": {
+          "const": "PASS"
+        },
+        "same_document_reset": {
+          "const": "PASS"
+        },
+        "tied_qk_backward": {
+          "const": "PASS"
+        },
+        "initial_loss_gate": {
+          "const": "PASS"
+        },
+        "initial_loss": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "forward_rel_l2": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 0.0003
+        },
+        "dq_rel_l2": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 0.0003
+        },
+        "dv_rel_l2": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 0.0003
+        },
+        "projection_rel_l2": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 0.0003
+        },
+        "projection_grad_rel_l2": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 0.0003
+        },
+        "forward_max_abs": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 0.003
+        }
       },
       "additionalProperties": true
     },
-    "latency_ms": {"type": "number", "exclusiveMinimum": 0},
-    "real_input_tok_s": {"type": "number", "exclusiveMinimum": 0},
-    "peak_GiB": {"type": ["number", "null"]},
-    "thermal": {"type": "object"},
-    "decision": {"type": "string"},
-    "artifacts": {"type": "object"}
+    "latency_ms": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "real_input_tok_s": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "peak_GiB": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "samples_ms": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 5,
+      "items": {
+        "type": "number",
+        "exclusiveMinimum": 0
+      }
+    },
+    "warmups": {
+      "type": "integer",
+      "const": 2
+    },
+    "timed_repetitions": {
+      "type": "integer",
+      "const": 5
+    },
+    "timing": {
+      "type": "object",
+      "required": [
+        "boundaries",
+        "real_input_tokens",
+        "valid_targets",
+        "intervals"
+      ],
+      "properties": {
+        "boundaries": {
+          "const": {
+            "clock": "cuda_events",
+            "start": "after_input_transfer_valid_target_count_and_zero_grad_before_forward",
+            "end": "after_loss_backward_before_zero_grad_and_cleanup",
+            "synchronize_before_start": true,
+            "synchronize_after_end": true,
+            "includes": [
+              "forward",
+              "masked_cross_entropy",
+              "backward"
+            ],
+            "excludes": [
+              "input_transfer",
+              "optimizer_step",
+              "zero_grad",
+              "cleanup"
+            ],
+            "peak_memory_scope": "max_allocated_across_warmup_and_timed_forward_backward"
+          }
+        },
+        "real_input_tokens": {
+          "const": 65536
+        },
+        "valid_targets": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65536
+        },
+        "intervals": {
+          "type": "array",
+          "minItems": 7,
+          "maxItems": 7,
+          "items": false,
+          "prefixItems": [
+            {
+              "$ref": "#/$defs/interval",
+              "properties": {
+                "phase": {
+                  "const": "warmup_1"
+                }
+              }
+            },
+            {
+              "$ref": "#/$defs/interval",
+              "properties": {
+                "phase": {
+                  "const": "warmup_2"
+                }
+              }
+            },
+            {
+              "$ref": "#/$defs/interval",
+              "properties": {
+                "phase": {
+                  "const": "timing_1"
+                }
+              }
+            },
+            {
+              "$ref": "#/$defs/interval",
+              "properties": {
+                "phase": {
+                  "const": "timing_2"
+                }
+              }
+            },
+            {
+              "$ref": "#/$defs/interval",
+              "properties": {
+                "phase": {
+                  "const": "timing_3"
+                }
+              }
+            },
+            {
+              "$ref": "#/$defs/interval",
+              "properties": {
+                "phase": {
+                  "const": "timing_4"
+                }
+              }
+            },
+            {
+              "$ref": "#/$defs/interval",
+              "properties": {
+                "phase": {
+                  "const": "timing_5"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    "memory": {
+      "type": "object",
+      "required": [
+        "status",
+        "peak_GiB",
+        "capacity_GiB"
+      ],
+      "properties": {
+        "status": {
+          "const": "PASS"
+        },
+        "peak_GiB": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "capacity_GiB": {
+          "type": "number",
+          "minimum": 90
+        }
+      },
+      "additionalProperties": true
+    },
+    "provenance": {
+      "type": "object",
+      "required": [
+        "candidate",
+        "harness",
+        "corpus",
+        "frozen"
+      ],
+      "properties": {
+        "candidate": {
+          "$ref": "#/$defs/code"
+        },
+        "harness": {
+          "$ref": "#/$defs/code"
+        },
+        "corpus": {
+          "$ref": "#/$defs/corpus"
+        },
+        "frozen": {
+          "$ref": "#/$defs/frozen"
+        }
+      },
+      "additionalProperties": true
+    },
+    "validation": {
+      "type": "object",
+      "required": [
+        "status",
+        "frozen_corpus",
+        "frozen_contract",
+        "selected_treatment",
+        "initial_loss",
+        "oracle_before_timing",
+        "completed_before_timing_at"
+      ],
+      "properties": {
+        "status": {
+          "const": "PASS"
+        },
+        "frozen_corpus": {
+          "const": "PASS"
+        },
+        "frozen_contract": {
+          "const": "PASS"
+        },
+        "selected_treatment": {
+          "const": "PASS"
+        },
+        "initial_loss": {
+          "const": "PASS"
+        },
+        "oracle_before_timing": {
+          "const": true
+        },
+        "completed_before_timing_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "additionalProperties": true
+    },
+    "admission": {
+      "type": "object",
+      "required": [
+        "status",
+        "worker_exited",
+        "gpu_released",
+        "returncode",
+        "accepted_at",
+        "manifest_identity_sha256"
+      ],
+      "properties": {
+        "status": {
+          "const": "PASS"
+        },
+        "worker_exited": {
+          "const": true
+        },
+        "gpu_released": {
+          "const": true
+        },
+        "returncode": {
+          "type": "integer",
+          "const": 0
+        },
+        "accepted_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "manifest_identity_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      },
+      "additionalProperties": true
+    },
+    "execution": {
+      "type": "object",
+      "required": [
+        "candidate_commit",
+        "candidate_branch",
+        "attempt_id",
+        "pid",
+        "gpu",
+        "supervisor_gpu",
+        "champion_immutable"
+      ],
+      "properties": {
+        "candidate_commit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "candidate_branch": {
+          "type": "string",
+          "pattern": "^codex/(generation0|experiment)/"
+        },
+        "attempt_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{32}$"
+        },
+        "pid": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "gpu": {
+          "$ref": "#/$defs/gpu"
+        },
+        "supervisor_gpu": {
+          "type": "object",
+          "required": [
+            "uuid",
+            "vram_GiB"
+          ],
+          "properties": {
+            "uuid": {
+              "type": "string",
+              "pattern": "^GPU-[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            },
+            "vram_GiB": {
+              "type": "number",
+              "minimum": 90
+            },
+            "name": {
+              "const": "NVIDIA RTX PRO 6000 Blackwell Server Edition"
+            },
+            "device": {
+              "const": "NVIDIA RTX PRO 6000 Blackwell Server Edition"
+            }
+          },
+          "additionalProperties": true,
+          "anyOf": [
+            {
+              "required": [
+                "name"
+              ]
+            },
+            {
+              "required": [
+                "device"
+              ]
+            }
+          ]
+        },
+        "champion_immutable": {
+          "const": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "decision": {
+      "const": "MEASURED_G0_B32_FB"
+    }
   },
-  "additionalProperties": true
+  "additionalProperties": true,
+  "$defs": {
+    "code": {
+      "type": "object",
+      "required": [
+        "commit",
+        "code_sha256",
+        "files"
+      ],
+      "properties": {
+        "commit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "code_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "files": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "gpu": {
+      "type": "object",
+      "required": [
+        "device",
+        "gpu_uuid",
+        "sm",
+        "vram_GiB",
+        "torch",
+        "cuda"
+      ],
+      "properties": {
+        "device": {
+          "const": "NVIDIA RTX PRO 6000 Blackwell Server Edition"
+        },
+        "gpu_uuid": {
+          "type": "string",
+          "pattern": "^GPU-[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+        },
+        "sm": {
+          "const": "sm_120"
+        },
+        "vram_GiB": {
+          "type": "number",
+          "minimum": 90
+        },
+        "torch": {
+          "type": "string",
+          "minLength": 1
+        },
+        "cuda": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": true
+    },
+    "corpus": {
+      "type": "object",
+      "required": [
+        "status",
+        "root",
+        "frozen_json_sha256",
+        "frozen_json",
+        "required_files",
+        "fingerprint"
+      ],
+      "properties": {
+        "status": {
+          "const": "RESOLVED"
+        },
+        "root": {
+          "type": "string",
+          "minLength": 1
+        },
+        "frozen_json_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "frozen_json": {
+          "type": "object"
+        },
+        "fingerprint": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "required_files": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": false,
+          "prefixItems": [
+            {
+              "$ref": "#/$defs/corpus_file",
+              "properties": {
+                "path": {
+                  "const": "train/shard_000000.tokens.bin"
+                }
+              }
+            },
+            {
+              "$ref": "#/$defs/corpus_file",
+              "properties": {
+                "path": {
+                  "const": "train/shard_000000.valid_lengths.bin"
+                }
+              }
+            },
+            {
+              "$ref": "#/$defs/corpus_file",
+              "properties": {
+                "path": {
+                  "const": "train/shard_000000.provenance.parquet"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    "frozen": {
+      "type": "object",
+      "required": [
+        "plan_id",
+        "plan_sha256",
+        "contract_sha256",
+        "config_sha256",
+        "canonical_source_sha256",
+        "champion_commit",
+        "champion_branch"
+      ],
+      "properties": {
+        "plan_id": {
+          "const": "G0-L8-SM120-EXACT-B32-C15"
+        },
+        "plan_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "contract_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "config_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "canonical_source_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "champion_commit": {
+          "const": "908b0b1438ba038d319adf97787aac08f213b590"
+        },
+        "champion_branch": {
+          "const": "codex/champion/0000-validated-bdh-baseline"
+        }
+      },
+      "additionalProperties": true
+    },
+    "interval": {
+      "type": "object",
+      "required": [
+        "phase",
+        "started_at",
+        "ended_at",
+        "start_monotonic_ns",
+        "end_monotonic_ns",
+        "elapsed_ms",
+        "peak_GiB"
+      ],
+      "properties": {
+        "phase": {
+          "type": "string",
+          "pattern": "^(warmup_[12]|timing_[1-5])$"
+        },
+        "started_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "ended_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "start_monotonic_ns": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "end_monotonic_ns": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "elapsed_ms": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "peak_GiB": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      },
+      "additionalProperties": true
+    },
+    "corpus_file": {
+      "type": "object",
+      "required": [
+        "path",
+        "exists",
+        "size",
+        "sha256"
+      ],
+      "properties": {
+        "path": {
+          "enum": [
+            "train/shard_000000.tokens.bin",
+            "train/shard_000000.valid_lengths.bin",
+            "train/shard_000000.provenance.parquet"
+          ]
+        },
+        "exists": {
+          "const": true
+        },
+        "size": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "$comment": "Accepted C15 records only. Runtime validation remains authoritative for run-slot mapping, hashes, corpus identity, timing arithmetic, oracle/memory consistency and supervisor admission.",
+  "allOf": [
+    {
+      "oneOf": [
+        {
+          "properties": {
+            "arm_id": {
+              "enum": [
+                "CONTROL",
+                "G0-00"
+              ]
+            },
+            "treatment_id": {
+              "const": "G0-00"
+            },
+            "selected_levels": {
+              "const": {
+                "checkpoint_policy": "gram_only_sac",
+                "dx_gemm_backend": "control_dx_gemm",
+                "dy_gemm_backend": "control_dy_gemm",
+                "dy_relu_epilogue_layout": "materialized_baseline_layout",
+                "e_gemm": "reference_e_gemm",
+                "full_symmetric_qk_sm120": "control_full_symmetric_qk",
+                "qk_backward": "control_tied_qk_vjp"
+              }
+            }
+          }
+        },
+        {
+          "properties": {
+            "arm_id": {
+              "const": "G0-01"
+            },
+            "treatment_id": {
+              "const": "G0-01"
+            },
+            "selected_levels": {
+              "const": {
+                "checkpoint_policy": "selective_exact_projection_only",
+                "dx_gemm_backend": "native_sm120_dx_gemm",
+                "dy_gemm_backend": "control_dy_gemm",
+                "dy_relu_epilogue_layout": "exact_dy_relu_epilogue_layout",
+                "e_gemm": "native_sm120_e_gemm",
+                "full_symmetric_qk_sm120": "control_full_symmetric_qk",
+                "qk_backward": "control_tied_qk_vjp"
+              }
+            }
+          }
+        },
+        {
+          "properties": {
+            "arm_id": {
+              "const": "G0-02"
+            },
+            "treatment_id": {
+              "const": "G0-02"
+            },
+            "selected_levels": {
+              "const": {
+                "checkpoint_policy": "selective_exact_projection_only",
+                "dx_gemm_backend": "control_dx_gemm",
+                "dy_gemm_backend": "native_sm120_dy_gemm",
+                "dy_relu_epilogue_layout": "exact_dy_relu_epilogue_layout",
+                "e_gemm": "reference_e_gemm",
+                "full_symmetric_qk_sm120": "control_full_symmetric_qk",
+                "qk_backward": "native_tied_qk_vjp"
+              }
+            }
+          }
+        },
+        {
+          "properties": {
+            "arm_id": {
+              "const": "G0-03"
+            },
+            "treatment_id": {
+              "const": "G0-03"
+            },
+            "selected_levels": {
+              "const": {
+                "checkpoint_policy": "gram_only_sac",
+                "dx_gemm_backend": "native_sm120_dx_gemm",
+                "dy_gemm_backend": "native_sm120_dy_gemm",
+                "dy_relu_epilogue_layout": "materialized_baseline_layout",
+                "e_gemm": "native_sm120_e_gemm",
+                "full_symmetric_qk_sm120": "control_full_symmetric_qk",
+                "qk_backward": "native_tied_qk_vjp"
+              }
+            }
+          }
+        },
+        {
+          "properties": {
+            "arm_id": {
+              "const": "G0-04"
+            },
+            "treatment_id": {
+              "const": "G0-04"
+            },
+            "selected_levels": {
+              "const": {
+                "checkpoint_policy": "selective_exact_projection_only",
+                "dx_gemm_backend": "control_dx_gemm",
+                "dy_gemm_backend": "native_sm120_dy_gemm",
+                "dy_relu_epilogue_layout": "materialized_baseline_layout",
+                "e_gemm": "native_sm120_e_gemm",
+                "full_symmetric_qk_sm120": "native_sm120_full_symmetric_qk",
+                "qk_backward": "control_tied_qk_vjp"
+              }
+            }
+          }
+        },
+        {
+          "properties": {
+            "arm_id": {
+              "const": "G0-05"
+            },
+            "treatment_id": {
+              "const": "G0-05"
+            },
+            "selected_levels": {
+              "const": {
+                "checkpoint_policy": "gram_only_sac",
+                "dx_gemm_backend": "native_sm120_dx_gemm",
+                "dy_gemm_backend": "native_sm120_dy_gemm",
+                "dy_relu_epilogue_layout": "exact_dy_relu_epilogue_layout",
+                "e_gemm": "reference_e_gemm",
+                "full_symmetric_qk_sm120": "native_sm120_full_symmetric_qk",
+                "qk_backward": "control_tied_qk_vjp"
+              }
+            }
+          }
+        },
+        {
+          "properties": {
+            "arm_id": {
+              "const": "G0-06"
+            },
+            "treatment_id": {
+              "const": "G0-06"
+            },
+            "selected_levels": {
+              "const": {
+                "checkpoint_policy": "gram_only_sac",
+                "dx_gemm_backend": "control_dx_gemm",
+                "dy_gemm_backend": "control_dy_gemm",
+                "dy_relu_epilogue_layout": "exact_dy_relu_epilogue_layout",
+                "e_gemm": "native_sm120_e_gemm",
+                "full_symmetric_qk_sm120": "native_sm120_full_symmetric_qk",
+                "qk_backward": "native_tied_qk_vjp"
+              }
+            }
+          }
+        },
+        {
+          "properties": {
+            "arm_id": {
+              "const": "G0-07"
+            },
+            "treatment_id": {
+              "const": "G0-07"
+            },
+            "selected_levels": {
+              "const": {
+                "checkpoint_policy": "selective_exact_projection_only",
+                "dx_gemm_backend": "native_sm120_dx_gemm",
+                "dy_gemm_backend": "control_dy_gemm",
+                "dy_relu_epilogue_layout": "materialized_baseline_layout",
+                "e_gemm": "reference_e_gemm",
+                "full_symmetric_qk_sm120": "native_sm120_full_symmetric_qk",
+                "qk_backward": "native_tied_qk_vjp"
+              }
+            }
+          }
+        },
+        {
+          "properties": {
+            "arm_id": {
+              "const": "G0-F00"
+            },
+            "treatment_id": {
+              "const": "G0-F00"
+            },
+            "selected_levels": {
+              "const": {
+                "checkpoint_policy": "selective_exact_projection_only",
+                "dx_gemm_backend": "native_sm120_dx_gemm",
+                "dy_gemm_backend": "native_sm120_dy_gemm",
+                "dy_relu_epilogue_layout": "exact_dy_relu_epilogue_layout",
+                "e_gemm": "native_sm120_e_gemm",
+                "full_symmetric_qk_sm120": "native_sm120_full_symmetric_qk",
+                "qk_backward": "native_tied_qk_vjp"
+              }
+            }
+          }
+        },
+        {
+          "properties": {
+            "arm_id": {
+              "const": "G0-F01"
+            },
+            "treatment_id": {
+              "const": "G0-F01"
+            },
+            "selected_levels": {
+              "const": {
+                "checkpoint_policy": "gram_only_sac",
+                "dx_gemm_backend": "control_dx_gemm",
+                "dy_gemm_backend": "native_sm120_dy_gemm",
+                "dy_relu_epilogue_layout": "materialized_baseline_layout",
+                "e_gemm": "reference_e_gemm",
+                "full_symmetric_qk_sm120": "native_sm120_full_symmetric_qk",
+                "qk_backward": "native_tied_qk_vjp"
+              }
+            }
+          }
+        },
+        {
+          "properties": {
+            "arm_id": {
+              "const": "G0-F02"
+            },
+            "treatment_id": {
+              "const": "G0-F02"
+            },
+            "selected_levels": {
+              "const": {
+                "checkpoint_policy": "gram_only_sac",
+                "dx_gemm_backend": "native_sm120_dx_gemm",
+                "dy_gemm_backend": "control_dy_gemm",
+                "dy_relu_epilogue_layout": "materialized_baseline_layout",
+                "e_gemm": "native_sm120_e_gemm",
+                "full_symmetric_qk_sm120": "native_sm120_full_symmetric_qk",
+                "qk_backward": "control_tied_qk_vjp"
+              }
+            }
+          }
+        },
+        {
+          "properties": {
+            "arm_id": {
+              "const": "G0-F03"
+            },
+            "treatment_id": {
+              "const": "G0-F03"
+            },
+            "selected_levels": {
+              "const": {
+                "checkpoint_policy": "selective_exact_projection_only",
+                "dx_gemm_backend": "control_dx_gemm",
+                "dy_gemm_backend": "control_dy_gemm",
+                "dy_relu_epilogue_layout": "exact_dy_relu_epilogue_layout",
+                "e_gemm": "reference_e_gemm",
+                "full_symmetric_qk_sm120": "native_sm120_full_symmetric_qk",
+                "qk_backward": "control_tied_qk_vjp"
+              }
+            }
+          }
+        },
+        {
+          "properties": {
+            "arm_id": {
+              "const": "G0-F04"
+            },
+            "treatment_id": {
+              "const": "G0-F04"
+            },
+            "selected_levels": {
+              "const": {
+                "checkpoint_policy": "gram_only_sac",
+                "dx_gemm_backend": "native_sm120_dx_gemm",
+                "dy_gemm_backend": "control_dy_gemm",
+                "dy_relu_epilogue_layout": "exact_dy_relu_epilogue_layout",
+                "e_gemm": "reference_e_gemm",
+                "full_symmetric_qk_sm120": "control_full_symmetric_qk",
+                "qk_backward": "native_tied_qk_vjp"
+              }
+            }
+          }
+        },
+        {
+          "properties": {
+            "arm_id": {
+              "const": "G0-F06"
+            },
+            "treatment_id": {
+              "const": "G0-F06"
+            },
+            "selected_levels": {
+              "const": {
+                "checkpoint_policy": "selective_exact_projection_only",
+                "dx_gemm_backend": "native_sm120_dx_gemm",
+                "dy_gemm_backend": "native_sm120_dy_gemm",
+                "dy_relu_epilogue_layout": "materialized_baseline_layout",
+                "e_gemm": "reference_e_gemm",
+                "full_symmetric_qk_sm120": "control_full_symmetric_qk",
+                "qk_backward": "control_tied_qk_vjp"
+              }
+            }
+          }
+        },
+        {
+          "properties": {
+            "arm_id": {
+              "const": "G0-F07"
+            },
+            "treatment_id": {
+              "const": "G0-F07"
+            },
+            "selected_levels": {
+              "const": {
+                "checkpoint_policy": "gram_only_sac",
+                "dx_gemm_backend": "control_dx_gemm",
+                "dy_gemm_backend": "native_sm120_dy_gemm",
+                "dy_relu_epilogue_layout": "exact_dy_relu_epilogue_layout",
+                "e_gemm": "native_sm120_e_gemm",
+                "full_symmetric_qk_sm120": "control_full_symmetric_qk",
+                "qk_backward": "control_tied_qk_vjp"
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
 }

@@ -26,7 +26,7 @@
           "canonical_source": "vendor/canonical/icrl_reintegrated_bdh_baseline_v1.py",
           "canonical_source_sha256": "947f8b33e740adede3e13382f8cb9e8e374d845de75e282bda5feb05c582f624",
           "champion_branch": "codex/champion/0000-validated-bdh-baseline",
-          "champion_commit": "908b0b1",
+          "champion_commit": "908b0b1438ba038d319adf97787aac08f213b590",
           "checkpoint_policy": "gram_only_sac",
           "experiment_id": "0000"
         },
@@ -102,7 +102,7 @@
           "canonical_source": "vendor/canonical/icrl_reintegrated_bdh_baseline_v1.py",
           "canonical_source_sha256": "947f8b33e740adede3e13382f8cb9e8e374d845de75e282bda5feb05c582f624",
           "champion_branch": "codex/champion/0000-validated-bdh-baseline",
-          "champion_commit": "908b0b1",
+          "champion_commit": "908b0b1438ba038d319adf97787aac08f213b590",
           "checkpoint_policy": "gram_only_sac",
           "experiment_id": "0000"
         },
@@ -199,7 +199,7 @@
           "canonical_source": "vendor/canonical/icrl_reintegrated_bdh_baseline_v1.py",
           "canonical_source_sha256": "947f8b33e740adede3e13382f8cb9e8e374d845de75e282bda5feb05c582f624",
           "champion_branch": "codex/champion/0000-validated-bdh-baseline",
-          "champion_commit": "908b0b1",
+          "champion_commit": "908b0b1438ba038d319adf97787aac08f213b590",
           "checkpoint_policy": "gram_only_sac",
           "experiment_id": "0000"
         },
@@ -296,7 +296,7 @@
           "canonical_source": "vendor/canonical/icrl_reintegrated_bdh_baseline_v1.py",
           "canonical_source_sha256": "947f8b33e740adede3e13382f8cb9e8e374d845de75e282bda5feb05c582f624",
           "champion_branch": "codex/champion/0000-validated-bdh-baseline",
-          "champion_commit": "908b0b1",
+          "champion_commit": "908b0b1438ba038d319adf97787aac08f213b590",
           "checkpoint_policy": "gram_only_sac",
           "experiment_id": "0000"
         },
@@ -393,7 +393,7 @@
           "canonical_source": "vendor/canonical/icrl_reintegrated_bdh_baseline_v1.py",
           "canonical_source_sha256": "947f8b33e740adede3e13382f8cb9e8e374d845de75e282bda5feb05c582f624",
           "champion_branch": "codex/champion/0000-validated-bdh-baseline",
-          "champion_commit": "908b0b1",
+          "champion_commit": "908b0b1438ba038d319adf97787aac08f213b590",
           "checkpoint_policy": "gram_only_sac",
           "experiment_id": "0000"
         },
@@ -490,7 +490,7 @@
           "canonical_source": "vendor/canonical/icrl_reintegrated_bdh_baseline_v1.py",
           "canonical_source_sha256": "947f8b33e740adede3e13382f8cb9e8e374d845de75e282bda5feb05c582f624",
           "champion_branch": "codex/champion/0000-validated-bdh-baseline",
-          "champion_commit": "908b0b1",
+          "champion_commit": "908b0b1438ba038d319adf97787aac08f213b590",
           "checkpoint_policy": "gram_only_sac",
           "experiment_id": "0000"
         },
@@ -587,7 +587,7 @@
           "canonical_source": "vendor/canonical/icrl_reintegrated_bdh_baseline_v1.py",
           "canonical_source_sha256": "947f8b33e740adede3e13382f8cb9e8e374d845de75e282bda5feb05c582f624",
           "champion_branch": "codex/champion/0000-validated-bdh-baseline",
-          "champion_commit": "908b0b1",
+          "champion_commit": "908b0b1438ba038d319adf97787aac08f213b590",
           "checkpoint_policy": "gram_only_sac",
           "experiment_id": "0000"
         },
@@ -684,7 +684,7 @@
           "canonical_source": "vendor/canonical/icrl_reintegrated_bdh_baseline_v1.py",
           "canonical_source_sha256": "947f8b33e740adede3e13382f8cb9e8e374d845de75e282bda5feb05c582f624",
           "champion_branch": "codex/champion/0000-validated-bdh-baseline",
-          "champion_commit": "908b0b1",
+          "champion_commit": "908b0b1438ba038d319adf97787aac08f213b590",
           "checkpoint_policy": "gram_only_sac",
           "experiment_id": "0000"
         },
@@ -779,7 +779,7 @@
           "canonical_source": "vendor/canonical/icrl_reintegrated_bdh_baseline_v1.py",
           "canonical_source_sha256": "947f8b33e740adede3e13382f8cb9e8e374d845de75e282bda5feb05c582f624",
           "champion_branch": "codex/champion/0000-validated-bdh-baseline",
-          "champion_commit": "908b0b1",
+          "champion_commit": "908b0b1438ba038d319adf97787aac08f213b590",
           "checkpoint_policy": "gram_only_sac",
           "experiment_id": "0000"
         },
@@ -886,7 +886,7 @@
           "canonical_source": "vendor/canonical/icrl_reintegrated_bdh_baseline_v1.py",
           "canonical_source_sha256": "947f8b33e740adede3e13382f8cb9e8e374d845de75e282bda5feb05c582f624",
           "champion_branch": "codex/champion/0000-validated-bdh-baseline",
-          "champion_commit": "908b0b1",
+          "champion_commit": "908b0b1438ba038d319adf97787aac08f213b590",
           "checkpoint_policy": "gram_only_sac",
           "experiment_id": "0000"
         },
@@ -973,7 +973,7 @@
           "canonical_source": "vendor/canonical/icrl_reintegrated_bdh_baseline_v1.py",
           "canonical_source_sha256": "947f8b33e740adede3e13382f8cb9e8e374d845de75e282bda5feb05c582f624",
           "champion_branch": "codex/champion/0000-validated-bdh-baseline",
-          "champion_commit": "908b0b1",
+          "champion_commit": "908b0b1438ba038d319adf97787aac08f213b590",
           "checkpoint_policy": "gram_only_sac",
           "experiment_id": "0000"
         },
@@ -1060,7 +1060,7 @@
           "canonical_source": "vendor/canonical/icrl_reintegrated_bdh_baseline_v1.py",
           "canonical_source_sha256": "947f8b33e740adede3e13382f8cb9e8e374d845de75e282bda5feb05c582f624",
           "champion_branch": "codex/champion/0000-validated-bdh-baseline",
-          "champion_commit": "908b0b1",
+          "champion_commit": "908b0b1438ba038d319adf97787aac08f213b590",
           "checkpoint_policy": "gram_only_sac",
           "experiment_id": "0000"
         },
@@ -1147,7 +1147,7 @@
           "canonical_source": "vendor/canonical/icrl_reintegrated_bdh_baseline_v1.py",
           "canonical_source_sha256": "947f8b33e740adede3e13382f8cb9e8e374d845de75e282bda5feb05c582f624",
           "champion_branch": "codex/champion/0000-validated-bdh-baseline",
-          "champion_commit": "908b0b1",
+          "champion_commit": "908b0b1438ba038d319adf97787aac08f213b590",
           "checkpoint_policy": "gram_only_sac",
           "experiment_id": "0000"
         },
@@ -1210,93 +1210,6 @@
       "source_arm_id": "G0-04"
     },
     {
-      "arm_id": "G0-F05",
-      "foldover": true,
-      "level_string": "0100101",
-      "levels": {
-        "checkpoint_policy": 1,
-        "dx_gemm_backend": 0,
-        "dy_gemm_backend": 0,
-        "dy_relu_epilogue_layout": 0,
-        "e_gemm": 1,
-        "full_symmetric_qk_sm120": 0,
-        "qk_backward": 1
-      },
-      "patch_spec": {
-        "active_high_factors": [
-          "qk_backward",
-          "e_gemm",
-          "checkpoint_policy"
-        ],
-        "allowed_change_class": "execution_representation_only",
-        "champion_mutation": "forbidden",
-        "control_reference": {
-          "canonical_source": "vendor/canonical/icrl_reintegrated_bdh_baseline_v1.py",
-          "canonical_source_sha256": "947f8b33e740adede3e13382f8cb9e8e374d845de75e282bda5feb05c582f624",
-          "champion_branch": "codex/champion/0000-validated-bdh-baseline",
-          "champion_commit": "908b0b1",
-          "checkpoint_policy": "gram_only_sac",
-          "experiment_id": "0000"
-        },
-        "forbidden_operations": [
-          "architecture or equation change",
-          "approximate/quantized operator",
-          "blocked-prefix read or [B,T,H,K] native-read branch",
-          "chunked-state/SplitScan branch",
-          "N128 rejected tile configurations",
-          "optimizer, loss, corpus, or checkpoint-file semantics change"
-        ],
-        "measurement": {
-          "benchmark": "B32",
-          "control_latency_ms_approx": 1655.0,
-          "objective": "exact forward+backward latency_ms",
-          "oracle_before_timing": true,
-          "target_latency_ms_approx": 728.0
-        },
-        "operations": [
-          {
-            "factor": "qk_backward",
-            "operation": "Change only the exact tied-QK VJP dispatch; accumulate the query-role and key-role contributions into the single Q gradient without materializing an independent K or changing the VJP.",
-            "status": "READY_FOR_EXPLICIT_EXECUTION"
-          },
-          {
-            "factor": "e_gemm",
-            "operation": "Change only the E GEMM backend/launch; preserve exact E values, dimensions, layout contract, and FP32 accumulation/master weights.",
-            "status": "READY_FOR_EXPLICIT_EXECUTION"
-          },
-          {
-            "factor": "checkpoint_policy",
-            "operation": "Change only the checkpoint boundary from the exact experiment-0000 Gram-only SAC control to selective exact projection-only recomputation; do not checkpoint the killed candidate QK-block read path and do not change the forward graph.",
-            "status": "READY_FOR_EXPLICIT_EXECUTION"
-          }
-        ],
-        "parent_experiment": "0000",
-        "patch_id": "G0-F05",
-        "required_invariants": [
-          "Arm-A science unchanged",
-          "exact full/symmetric Q=K attention",
-          "strict-exclusive same-document masking and resets",
-          "tied-QK backward",
-          "no softmax and no attention scale",
-          "real frozen corpus and valid-target accounting",
-          "FP32 oracle and gradient gates pass before timing"
-        ],
-        "selected_levels": {
-          "checkpoint_policy": "selective_exact_projection_only",
-          "dx_gemm_backend": "control_dx_gemm",
-          "dy_gemm_backend": "control_dy_gemm",
-          "dy_relu_epilogue_layout": "materialized_baseline_layout",
-          "e_gemm": "native_sm120_e_gemm",
-          "full_symmetric_qk_sm120": "control_full_symmetric_qk",
-          "qk_backward": "native_tied_qk_vjp"
-        },
-        "status": "READY_FOR_EXPLICIT_EXECUTION"
-      },
-      "role": "full_foldover_arm",
-      "row_index": 13,
-      "source_arm_id": "G0-05"
-    },
-    {
       "arm_id": "G0-F06",
       "foldover": true,
       "level_string": "0011001",
@@ -1321,7 +1234,7 @@
           "canonical_source": "vendor/canonical/icrl_reintegrated_bdh_baseline_v1.py",
           "canonical_source_sha256": "947f8b33e740adede3e13382f8cb9e8e374d845de75e282bda5feb05c582f624",
           "champion_branch": "codex/champion/0000-validated-bdh-baseline",
-          "champion_commit": "908b0b1",
+          "champion_commit": "908b0b1438ba038d319adf97787aac08f213b590",
           "checkpoint_policy": "gram_only_sac",
           "experiment_id": "0000"
         },
@@ -1408,7 +1321,7 @@
           "canonical_source": "vendor/canonical/icrl_reintegrated_bdh_baseline_v1.py",
           "canonical_source_sha256": "947f8b33e740adede3e13382f8cb9e8e374d845de75e282bda5feb05c582f624",
           "champion_branch": "codex/champion/0000-validated-bdh-baseline",
-          "champion_commit": "908b0b1",
+          "champion_commit": "908b0b1438ba038d319adf97787aac08f213b590",
           "checkpoint_policy": "gram_only_sac",
           "experiment_id": "0000"
         },
@@ -1471,14 +1384,14 @@
       "source_arm_id": "G0-07"
     }
   ],
-  "base_commit": "908b0b1",
+  "base_commit": "908b0b1438ba038d319adf97787aac08f213b590",
   "contract_sha256": "6074310a418ed8af684e66b73fc75e8f2152300ab43ad7cca5f93b550482b800",
   "control_experiment": "0000",
   "control_reference": {
     "canonical_source": "vendor/canonical/icrl_reintegrated_bdh_baseline_v1.py",
     "canonical_source_sha256": "947f8b33e740adede3e13382f8cb9e8e374d845de75e282bda5feb05c582f624",
     "champion_branch": "codex/champion/0000-validated-bdh-baseline",
-    "champion_commit": "908b0b1",
+    "champion_commit": "908b0b1438ba038d319adf97787aac08f213b590",
     "checkpoint_policy": "gram_only_sac",
     "control_equivalence": "byte-equivalent canonical source and behavior-equivalent exact Arm-A treatment before any factor is enabled",
     "experiment_id": "0000",
@@ -1503,8 +1416,10 @@
     "status": "PASS_STATIC_CONTROL_GATES"
   },
   "design": {
-    "array": "L8(2^7) + full 8-arm foldover",
+    "array": "original L8(2^7) + foldover, with G0-F05 excluded",
     "coding": "0=control, 1=exact execution candidate",
+    "control_slots": 20,
+    "exact_orthogonality": false,
     "factor_order": [
       "full_symmetric_qk_sm120",
       "qk_backward",
@@ -1514,7 +1429,7 @@
       "dy_relu_epilogue_layout",
       "checkpoint_policy"
     ],
-    "foldover": "bitwise complement of all seven factor columns",
+    "foldover": "original bitwise complements retained except structurally infeasible G0-F05",
     "generators": {
       "A": "x",
       "B": "y",
@@ -1524,8 +1439,22 @@
       "F": "y xor z",
       "G": "x xor y xor z"
     },
-    "type": "Taguchi-style orthogonal array with full foldover"
+    "main_effect_rank_with_intercept": 8,
+    "missing_cell_caveat": "G0-F05 is structurally infeasible. The intercept plus seven main-effect columns retain rank 8, but the constrained design is not exactly orthogonal and main effects are not dealiased from two-factor interactions. Estimates are conditional on the feasible cells and the regression model; do not impute the missing cell.",
+    "run_slots": 50,
+    "treatment_arms": 15,
+    "type": "constrained rank-complete main-effect screening design"
   },
+  "excluded_cells": [
+    {
+      "arm_id": "G0-F05",
+      "evidence_campaign": "iclr-g0-0ce16e9922b2",
+      "level_string": "0100101",
+      "reason": "Observed B32 warmup OOM for the joint frozen treatment on the target SM120 GPU",
+      "result_policy": "excluded, never imputed or admitted as a measured result",
+      "status": "STRUCTURALLY_INFEASIBLE"
+    }
+  ],
   "excluded_killed_branches": [
     "0001 exact [B,T,H,K] wide-Dx plus causal prefix blocks at block 256",
     "compiled chunked-state schedule that OOMed at the measured shape",
@@ -1643,12 +1572,12 @@
     }
   ],
   "foldover": {
-    "additional_arms": 8,
-    "main_effect_two_factor_aliases_resolved": true,
-    "remaining_aliases": "two-factor interactions remain grouped within their original three-term classes",
+    "additional_arms": 7,
+    "main_effect_two_factor_aliases_resolved": false,
+    "remaining_aliases": "missing-cell caveat: main effects are no longer orthogonal to two-factor interactions; original interaction groups remain unresolved",
     "source_rows": 8,
-    "total_treatment_arms": 16,
-    "type": "full_bitwise_complement"
+    "total_treatment_arms": 15,
+    "type": "original_bitwise_complement_minus_structurally_infeasible_F05"
   },
   "generation": 0,
   "interaction_aliases": {
@@ -1661,7 +1590,8 @@
       "F": "dy_relu_epilogue_layout",
       "G": "checkpoint_policy"
     },
-    "main_effects_dealiased_from_two_factor_interactions": true,
+    "main_effects_dealiased_from_two_factor_interactions": false,
+    "missing_cell_caveat": "G0-F05 is structurally infeasible. The intercept plus seven main-effect columns retain rank 8, but the constrained design is not exactly orthogonal and main effects are not dealiased from two-factor interactions. Estimates are conditional on the feasible cells and the regression model; do not impute the missing cell.",
     "remaining_two_factor_interaction_groups": {
       "A": [
         "qk_backward*dy_gemm_backend",
@@ -1702,7 +1632,7 @@
   },
   "next_round_handoff": {
     "interaction_round": "construct a full 2^k factorial over the selected factors; do not infer aliased interactions from L8",
-    "method": "fit main effects with block/position covariates; preserve alias uncertainty",
+    "method": "constrained regression of main effects with original block/position covariates; retain missing-cell and interaction uncertainty",
     "promotion_rule": "only exact-oracle-passing, memory-safe factors with stable sign across blocks",
     "source_commit_for_next_round": "the screening commit plus append-only result ledger",
     "status": "WAITING_FOR_SCREENING_RESULTS"
@@ -1714,7 +1644,7 @@
     "target_latency_ms_approx": 728.0,
     "target_real_tok_s": 90000.0
   },
-  "plan_id": "G0-L8-SM120-EXACT-B32",
+  "plan_id": "G0-L8-SM120-EXACT-B32-C15",
   "predicted_effects": {
     "checkpoint_policy": {
       "caution": "selective candidate-QK-block checkpoint from 0001 is excluded",
@@ -1776,7 +1706,7 @@
   },
   "randomization": {
     "blocks": 2,
-    "control_interleave": "anchor before each block, after every two candidate slots, plus block-end anchor and randomized control row G0-00",
+    "control_interleave": "preserve all 20 original anchor/interleaved CONTROL slots and original run IDs/positions; remove only the two G0-F05 occurrences after randomization",
     "replicates_per_arm": 2,
     "seed": 20260909,
     "thermal_drift_covariate": "block_id and within-block position"
@@ -1786,14 +1716,31 @@
     "format": "JSONL",
     "one_record_per_run_id": true,
     "required_fields": [
+      "schema_version",
+      "plan_id",
+      "source_commit",
+      "harness_commit",
       "run_id",
       "arm_id",
+      "treatment_id",
+      "attempt_id",
       "block_id",
+      "within_block_position",
+      "selected_levels",
       "oracle",
       "latency_ms",
       "real_input_tok_s",
-      "decision",
-      "source_commit"
+      "peak_GiB",
+      "samples_ms",
+      "warmups",
+      "timed_repetitions",
+      "timing",
+      "memory",
+      "provenance",
+      "validation",
+      "admission",
+      "execution",
+      "decision"
     ],
     "schema": "schemas/generation0_result.schema.json"
   },
@@ -1837,16 +1784,6 @@
       "randomization_seed": 20260909,
       "run_id": "G0-R04",
       "within_block_position": 4
-    },
-    {
-      "arm_id": "G0-F05",
-      "block_id": 1,
-      "control_interleaved": false,
-      "kind": "arm",
-      "oracle_required": true,
-      "randomization_seed": 20260909,
-      "run_id": "G0-R05",
-      "within_block_position": 5
     },
     {
       "arm_id": "G0-F02",
@@ -2187,16 +2124,6 @@
       "randomization_seed": 20260909,
       "run_id": "G0-R39",
       "within_block_position": 13
-    },
-    {
-      "arm_id": "G0-F05",
-      "block_id": 2,
-      "control_interleaved": false,
-      "kind": "arm",
-      "oracle_required": true,
-      "randomization_seed": 20260909,
-      "run_id": "G0-R40",
-      "within_block_position": 14
     },
     {
       "arm_id": "G0-06",

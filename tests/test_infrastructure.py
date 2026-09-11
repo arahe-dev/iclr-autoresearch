@@ -11,7 +11,7 @@ from icrl_autoresearch.benchmarks import B32, B64, summarize, throughput_tok_s
 from icrl_autoresearch.contract import load_contract, source_sha256
 from icrl_autoresearch.decisions import evaluate_report, read_gate
 from icrl_autoresearch.doe import screening_plan
-from icrl_autoresearch.generation0 import FACTOR_ORDER, assert_control_treatment, build_plan
+from icrl_autoresearch.generation0 import BASE_COMMIT, FACTOR_ORDER, assert_control_treatment, build_plan, original_run_order
 from icrl_autoresearch.gpu_harness import assert_candidate_worktree, run_context
 from icrl_autoresearch.validation import validate_repo
 
@@ -44,16 +44,19 @@ class InfrastructureTests(unittest.TestCase):
         self.assertTrue(plan["execution_requires_explicit_flag"])
         self.assertTrue(all(row["science_delta"] is False for row in plan["rows"]))
 
-    def test_generation0_l8_foldover_is_balanced_and_control_anchored(self) -> None:
+    def test_generation0_c15_preserves_original_order_and_feasible_arms(self) -> None:
         plan = build_plan()
         assert_control_treatment(plan)
-        self.assertEqual(plan["base_commit"], "908b0b1")
+        self.assertEqual(plan["base_commit"], BASE_COMMIT)
         self.assertEqual(plan["arms"][0]["level_string"], "0000000")
         self.assertEqual(plan["arms"][0]["patch_spec"]["selected_levels"]["checkpoint_policy"], "gram_only_sac")
-        self.assertEqual(len(plan["arms"]), 16)
-        for factor in FACTOR_ORDER:
-            self.assertEqual(sum(arm["levels"][factor] for arm in plan["arms"]), 8)
-        self.assertEqual(len(plan["run_order"]), 52)
+        self.assertEqual(len(plan["arms"]), 15)
+        self.assertNotIn("G0-F05", [arm["arm_id"] for arm in plan["arms"]])
+        self.assertEqual(plan["run_order"], [slot for slot in original_run_order() if slot["arm_id"] != "G0-F05"])
+        self.assertEqual(sum(slot["arm_id"] == "CONTROL" for slot in plan["run_order"]), 20)
+        self.assertEqual(len(plan["run_order"]), 50)
+        self.assertFalse(plan["design"]["exact_orthogonality"])
+        self.assertFalse(plan["interaction_aliases"]["main_effects_dealiased_from_two_factor_interactions"])
         self.assertTrue(plan["execution_allowed"])
         self.assertTrue(plan["execution_requires_explicit_flag"])
         self.assertTrue(all(arm["patch_spec"]["status"] == "READY_FOR_EXPLICIT_EXECUTION" for arm in plan["arms"]))

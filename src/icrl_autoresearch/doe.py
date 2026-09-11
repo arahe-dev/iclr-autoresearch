@@ -21,7 +21,7 @@ def screening_plan(config: dict[str, Any] | None = None) -> dict[str, Any]:
     if cfg.get("execution_allowed") is not True or cfg.get("execution_requires_explicit_flag") is not True:
         raise ValueError("Generation-0 execution must be explicitly enabled and explicitly gated")
     rows = []
-    for row in cfg.get("screening_rows", []):
+    for row in cfg.get("screening_rows", []) + cfg.get("foldover_rows", []):
         item = dict(row)
         item["status"] = "READY_FOR_EXPLICIT_EXECUTION"
         item["science_delta"] = False
@@ -29,6 +29,8 @@ def screening_plan(config: dict[str, Any] | None = None) -> dict[str, Any]:
         rows.append(item)
     return {
         "schema_version": 1,
+        "plan_id": cfg["plan_id"],
+        "excluded_cells": cfg["excluded_cells"],
         "generation": 0,
         "status": "READY_FOR_EXPLICIT_EXECUTION",
         "baseline_experiment": cfg["baseline_experiment"],

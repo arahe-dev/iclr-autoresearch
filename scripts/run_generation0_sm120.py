@@ -15,8 +15,8 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from icrl_autoresearch.generation0 import build_plan
-from icrl_autoresearch.gpu import select_target_gpu
+from icrl_autoresearch.generation0 import PLAN_ID, build_plan
+from icrl_autoresearch.gpu import EXPECTED_GPU_NAME, select_target_gpu
 from icrl_autoresearch.gpu_harness import (
     _command_argv,
     _format_command,
@@ -25,16 +25,13 @@ from icrl_autoresearch.gpu_harness import (
 )
 
 
-PLAN_ID = "G0-L8-SM120-EXACT-B32"
-
-
 def exact_target_gpu() -> dict[str, Any]:
     """Retained compatibility probe; it is deliberately torch-free."""
     return select_target_gpu().as_dict()
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Run Generation-0 through the strict RTX PRO 6000/SM120 supervisor")
+    parser = argparse.ArgumentParser(description=f"Run C15 Generation-0 through the strict {EXPECTED_GPU_NAME}/SM120 supervisor")
     parser.add_argument("--execute", action="store_true", help="required to launch any candidate command")
     parser.add_argument("--candidate-root", type=Path, help="separate codex/experiment/* or codex/generation0/* worktree")
     parser.add_argument("--command-template", help="argv-only runner command; supports the documented placeholders")
@@ -47,7 +44,7 @@ def main() -> int:
     parser.add_argument("--gpu-index", type=int, help="physical nvidia-smi GPU index")
     parser.add_argument("--timeout-seconds", type=float, default=60 * 60, help="per-worker wall-clock timeout")
     parser.add_argument("--retry-failed", action="store_true", help="explicitly retry the sticky failed next slot")
-    parser.add_argument("--limit", type=int, help="optional prefix of the frozen 52-slot order")
+    parser.add_argument("--limit", type=int, help="optional prefix of the frozen 50-slot C15 order (original slot IDs retained)")
     args = parser.parse_args()
 
     plan = build_plan()
@@ -57,7 +54,7 @@ def main() -> int:
             "plan_id": PLAN_ID,
             "arms": len(plan["arms"]),
             "run_slots": len(plan["run_order"]),
-            "requires": "nvidia-smi RTX PRO 6000 sm_120, candidate preflight, --execute",
+            "requires": f"nvidia-smi {EXPECTED_GPU_NAME} sm_120, >=90 GiB, candidate preflight, --execute",
         }, indent=2, sort_keys=True))
         return 0
 

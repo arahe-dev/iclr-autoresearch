@@ -1,6 +1,8 @@
 """One self-contained Google Colab cell for the repaired Generation-0 run.
 
-Paste this entire file into one Colab cell.  It mounts the frozen Drive
+Paste this entire file into one Colab cell. By default it only prints preparation
+instructions. Set EXECUTE=True and pin ICRL_G0_HARNESS_COMMIT to the full commit
+containing the C15 implementation for a later manual run. Execution mounts the frozen Drive
 corpus, fetches the public repository anonymously (or securely falls back
 to a short-lived askpass helper when authentication is needed), creates fresh
 planning/candidate worktrees at the pinned harness commit, and delegates all
@@ -29,10 +31,11 @@ import tempfile
 
 REPOSITORY = "https://github.com/arahe-dev/iclr-autoresearch.git"
 HARNESS_BRANCH = "codex/generation0/sm120-runner-20260909"
-HARNESS_COMMIT = "0ce16e9922b2766df24698c96bf5eac34d5eb2b4"
+HARNESS_COMMIT = os.environ.get("ICRL_G0_HARNESS_COMMIT", "")
+EXECUTE = False
 CHAMPION_BRANCH = "codex/champion/0000-validated-bdh-baseline"
 CHAMPION_COMMIT = "908b0b1438ba038d319adf97787aac08f213b590"
-PLAN_ID = "G0-L8-SM120-EXACT-B32"
+PLAN_ID = "G0-L8-SM120-EXACT-B32-C15"
 
 DRIVE_ROOT = Path("/content/drive/Shareddrives/ICLR PHASE BDH/phase_bdh")
 CORPUS_ROOT = DRIVE_ROOT / "corpus/stage2/frozen_5b_v1"
@@ -40,7 +43,7 @@ REPO_STORE = Path(f"/content/iclr-g0-repository-{HARNESS_COMMIT[:12]}")
 PLANNING_ROOT = Path(f"/content/iclr-g0-planning-{HARNESS_COMMIT[:12]}")
 CANDIDATE_ROOT = Path(f"/content/iclr-g0-candidate-{HARNESS_COMMIT[:12]}")
 CANDIDATE_BRANCH = f"codex/generation0/colab-{HARNESS_COMMIT[:12]}"
-CAMPAIGN_ROOT = DRIVE_ROOT / "experiments/generation0" / f"iclr-g0-{HARNESS_COMMIT[:12]}"
+CAMPAIGN_ROOT = DRIVE_ROOT / "experiments/generation0" / f"iclr-g0-c15-{HARNESS_COMMIT[:12]}"
 
 # Keep this false for normal resumes. Set it to true only after inspecting a
 # deliberate treatment repair; the supervisor still retries only the failed
@@ -382,6 +385,22 @@ def run_supervisor(command: list[str], *, cwd: Path, env: dict[str, str], log_pa
 
 
 def main() -> None:
+    if not EXECUTE:
+        print(json.dumps({
+            "status": "PREPARED_NO_EXECUTION", "plan_id": PLAN_ID,
+            "treatment_arms": 15, "run_slots": 50, "original_control_slots": 20,
+            "excluded_cell": "G0-F05 (structurally infeasible; no imputed result)",
+            "design": "constrained rank-complete; missing-cell caveat; no exact orthogonality or de-aliasing",
+            "harness_commit": HARNESS_COMMIT or "UNPINNED: parent must commit the C15 implementation first",
+            "manual_run": "Set ICRL_G0_HARNESS_COMMIT to that full 40-character SHA before pasting, and set EXECUTE=True.",
+            "preserved_campaign": "iclr-g0-0ce16e9922b2",
+        }, indent=2, sort_keys=True))
+        return
+    assert_full_sha(HARNESS_COMMIT, "HARNESS_COMMIT")
+    if HARNESS_COMMIT == "0ce16e9922b2766df24698c96bf5eac34d5eb2b4":
+        raise RuntimeError("C15 requires a new implementation commit; the original evidence campaign is immutable")
+    if "iclr-g0-0ce16e9922b2" in CAMPAIGN_ROOT.parts:
+        raise RuntimeError("the original evidence campaign is immutable; select a new C15 campaign")
     from google.colab import drive
 
     if not (Path("/content/drive") / "MyDrive").is_dir():
@@ -394,6 +413,9 @@ def main() -> None:
     assert_full_sha(CHAMPION_COMMIT, "CHAMPION_COMMIT")
 
     ensure_source_checkout()
+    preview = json.loads(run([sys.executable, str(PLANNING_ROOT / "scripts/run_generation0.py")], cwd=PLANNING_ROOT))
+    if preview.get("plan_id") != PLAN_ID or preview.get("arms") != 15 or preview.get("run_slots") != 50:
+        raise RuntimeError("pinned checkout does not implement the C15 plan")
     assert_frozen_corpus(PLANNING_ROOT)
     CAMPAIGN_ROOT.mkdir(parents=True, exist_ok=True)
     # Use the notebook runtime, including its installed packages, for both children.

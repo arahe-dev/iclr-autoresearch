@@ -20,7 +20,7 @@ import time
 from typing import Any
 
 
-EXPECTED_GPU_NAME = "RTX PRO 6000"
+EXPECTED_GPU_NAME = "NVIDIA RTX PRO 6000 Blackwell Server Edition"
 MIN_VRAM_MIB = 90 * 1024
 FREE_MEMORY_TOLERANCE_MIB = 256
 
@@ -162,14 +162,14 @@ def select_target_gpu(*, gpu_uuid: str | None = None, gpu_index: int | None = No
             raise NvidiaSmiError(f"requested GPU index is out of range: {gpu_index}")
         gpu = snapshots[gpu_index]
     else:
-        candidates = [gpu for gpu in snapshots if EXPECTED_GPU_NAME.lower() in gpu.name.lower()]
+        candidates = [gpu for gpu in snapshots if gpu.name == EXPECTED_GPU_NAME]
         if len(candidates) != 1:
             raise NvidiaSmiError(
                 "target GPU selection is ambiguous; pass --gpu-uuid or --gpu-index "
                 f"(matching devices: {[gpu.uuid for gpu in candidates]})"
             )
         gpu = candidates[0]
-    if EXPECTED_GPU_NAME.lower() not in gpu.name.lower():
+    if gpu.name != EXPECTED_GPU_NAME:
         raise NvidiaSmiError(f"target execution requires {EXPECTED_GPU_NAME}; found {gpu.name}")
     if gpu.total_mib < MIN_VRAM_MIB:
         raise NvidiaSmiError(f"target GPU has less than 90 GiB VRAM: {gpu.total_mib / 1024:.2f} GiB")
@@ -224,4 +224,3 @@ def worker_environment(gpu: GpuSnapshot, *, corpus_root: Path | None = None) -> 
     if corpus_root is not None:
         environment["ICRL_CORPUS_ROOT"] = str(corpus_root.resolve())
     return environment
-

@@ -1,16 +1,1961 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://icrl-autoresearch.local/schemas/generation_0_plan.schema.json",
-  "title": "Generation-0 exact-BDH screening plan",
+  "title": "C15 constrained Generation-0 exact-BDH screening plan",
   "type": "object",
-  "required": ["schema_version", "generation", "status", "science_delta_allowed", "factors"],
+  "required": [
+    "schema_version",
+    "plan_id",
+    "generation",
+    "status",
+    "base_commit",
+    "science_delta_allowed",
+    "execution_allowed",
+    "execution_requires_explicit_flag",
+    "factors",
+    "arms",
+    "run_order",
+    "excluded_cells",
+    "design",
+    "interaction_aliases",
+    "contract_sha256",
+    "control_experiment",
+    "control_reference",
+    "control_verification",
+    "execution_mode",
+    "objective",
+    "randomization",
+    "result_contract",
+    "foldover"
+  ],
   "properties": {
-    "schema_version": {"type": "integer", "const": 1},
-    "generation": {"type": "integer", "const": 0},
-    "status": {"type": "string", "const": "PLANNED_NO_EXECUTION"},
-    "science_delta_allowed": {"type": "boolean", "const": false},
-    "factors": {"type": "array", "minItems": 1}
+    "schema_version": {
+      "type": "integer",
+      "const": 1
+    },
+    "plan_id": {
+      "const": "G0-L8-SM120-EXACT-B32-C15"
+    },
+    "generation": {
+      "type": "integer",
+      "const": 0
+    },
+    "status": {
+      "const": "READY_FOR_EXPLICIT_EXECUTION"
+    },
+    "base_commit": {
+      "const": "908b0b1438ba038d319adf97787aac08f213b590"
+    },
+    "science_delta_allowed": {
+      "const": false
+    },
+    "execution_allowed": {
+      "const": true
+    },
+    "execution_requires_explicit_flag": {
+      "const": true
+    },
+    "factors": {
+      "type": "array",
+      "minItems": 7,
+      "maxItems": 7,
+      "prefixItems": [
+        {
+          "type": "object",
+          "required": [
+            "name",
+            "levels",
+            "operator_class",
+            "science_change"
+          ],
+          "properties": {
+            "name": {
+              "const": "full_symmetric_qk_sm120"
+            },
+            "levels": {
+              "const": [
+                "control_full_symmetric_qk",
+                "native_sm120_full_symmetric_qk"
+              ]
+            },
+            "operator_class": {
+              "const": "exact_execution_backend"
+            },
+            "science_change": {
+              "const": false
+            }
+          },
+          "additionalProperties": true
+        },
+        {
+          "type": "object",
+          "required": [
+            "name",
+            "levels",
+            "operator_class",
+            "science_change"
+          ],
+          "properties": {
+            "name": {
+              "const": "qk_backward"
+            },
+            "levels": {
+              "const": [
+                "control_tied_qk_vjp",
+                "native_tied_qk_vjp"
+              ]
+            },
+            "operator_class": {
+              "const": "exact_execution_backend"
+            },
+            "science_change": {
+              "const": false
+            }
+          },
+          "additionalProperties": true
+        },
+        {
+          "type": "object",
+          "required": [
+            "name",
+            "levels",
+            "operator_class",
+            "science_change"
+          ],
+          "properties": {
+            "name": {
+              "const": "dx_gemm_backend"
+            },
+            "levels": {
+              "const": [
+                "control_dx_gemm",
+                "native_sm120_dx_gemm"
+              ]
+            },
+            "operator_class": {
+              "const": "exact_execution_backend"
+            },
+            "science_change": {
+              "const": false
+            }
+          },
+          "additionalProperties": true
+        },
+        {
+          "type": "object",
+          "required": [
+            "name",
+            "levels",
+            "operator_class",
+            "science_change"
+          ],
+          "properties": {
+            "name": {
+              "const": "dy_gemm_backend"
+            },
+            "levels": {
+              "const": [
+                "control_dy_gemm",
+                "native_sm120_dy_gemm"
+              ]
+            },
+            "operator_class": {
+              "const": "exact_execution_backend"
+            },
+            "science_change": {
+              "const": false
+            }
+          },
+          "additionalProperties": true
+        },
+        {
+          "type": "object",
+          "required": [
+            "name",
+            "levels",
+            "operator_class",
+            "science_change"
+          ],
+          "properties": {
+            "name": {
+              "const": "dy_relu_epilogue_layout"
+            },
+            "levels": {
+              "const": [
+                "materialized_baseline_layout",
+                "exact_dy_relu_epilogue_layout"
+              ]
+            },
+            "operator_class": {
+              "const": "exact_execution_backend"
+            },
+            "science_change": {
+              "const": false
+            }
+          },
+          "additionalProperties": true
+        },
+        {
+          "type": "object",
+          "required": [
+            "name",
+            "levels",
+            "operator_class",
+            "science_change"
+          ],
+          "properties": {
+            "name": {
+              "const": "e_gemm"
+            },
+            "levels": {
+              "const": [
+                "reference_e_gemm",
+                "native_sm120_e_gemm"
+              ]
+            },
+            "operator_class": {
+              "const": "exact_execution_backend"
+            },
+            "science_change": {
+              "const": false
+            }
+          },
+          "additionalProperties": true
+        },
+        {
+          "type": "object",
+          "required": [
+            "name",
+            "levels",
+            "operator_class",
+            "science_change"
+          ],
+          "properties": {
+            "name": {
+              "const": "checkpoint_policy"
+            },
+            "levels": {
+              "const": [
+                "gram_only_sac",
+                "selective_exact_projection_only"
+              ]
+            },
+            "operator_class": {
+              "const": "exact_training_schedule"
+            },
+            "science_change": {
+              "const": false
+            }
+          },
+          "additionalProperties": true
+        }
+      ],
+      "items": false
+    },
+    "arms": {
+      "type": "array",
+      "minItems": 15,
+      "maxItems": 15,
+      "items": false,
+      "prefixItems": [
+        {
+          "properties": {
+            "arm_id": {
+              "const": "G0-00"
+            },
+            "row_index": {
+              "const": 0
+            },
+            "role": {
+              "const": "baseline_control"
+            },
+            "foldover": {
+              "const": false
+            },
+            "level_string": {
+              "const": "0000000"
+            },
+            "levels": {
+              "const": {
+                "checkpoint_policy": 0,
+                "dx_gemm_backend": 0,
+                "dy_gemm_backend": 0,
+                "dy_relu_epilogue_layout": 0,
+                "e_gemm": 0,
+                "full_symmetric_qk_sm120": 0,
+                "qk_backward": 0
+              }
+            },
+            "generator_bits": {
+              "const": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+              }
+            },
+            "patch_spec": {
+              "properties": {
+                "patch_id": {
+                  "const": "G0-00"
+                },
+                "selected_levels": {
+                  "const": {
+                    "checkpoint_policy": "gram_only_sac",
+                    "dx_gemm_backend": "control_dx_gemm",
+                    "dy_gemm_backend": "control_dy_gemm",
+                    "dy_relu_epilogue_layout": "materialized_baseline_layout",
+                    "e_gemm": "reference_e_gemm",
+                    "full_symmetric_qk_sm120": "control_full_symmetric_qk",
+                    "qk_backward": "control_tied_qk_vjp"
+                  }
+                },
+                "active_high_factors": {
+                  "const": []
+                }
+              }
+            }
+          },
+          "required": [
+            "generator_bits"
+          ],
+          "$ref": "#/$defs/arm"
+        },
+        {
+          "properties": {
+            "arm_id": {
+              "const": "G0-01"
+            },
+            "row_index": {
+              "const": 1
+            },
+            "role": {
+              "const": "L8_screening_arm"
+            },
+            "foldover": {
+              "const": false
+            },
+            "level_string": {
+              "const": "0010111"
+            },
+            "levels": {
+              "const": {
+                "checkpoint_policy": 1,
+                "dx_gemm_backend": 1,
+                "dy_gemm_backend": 0,
+                "dy_relu_epilogue_layout": 1,
+                "e_gemm": 1,
+                "full_symmetric_qk_sm120": 0,
+                "qk_backward": 0
+              }
+            },
+            "generator_bits": {
+              "const": {
+                "x": 0,
+                "y": 0,
+                "z": 1
+              }
+            },
+            "patch_spec": {
+              "properties": {
+                "patch_id": {
+                  "const": "G0-01"
+                },
+                "selected_levels": {
+                  "const": {
+                    "checkpoint_policy": "selective_exact_projection_only",
+                    "dx_gemm_backend": "native_sm120_dx_gemm",
+                    "dy_gemm_backend": "control_dy_gemm",
+                    "dy_relu_epilogue_layout": "exact_dy_relu_epilogue_layout",
+                    "e_gemm": "native_sm120_e_gemm",
+                    "full_symmetric_qk_sm120": "control_full_symmetric_qk",
+                    "qk_backward": "control_tied_qk_vjp"
+                  }
+                },
+                "active_high_factors": {
+                  "const": [
+                    "dx_gemm_backend",
+                    "e_gemm",
+                    "dy_relu_epilogue_layout",
+                    "checkpoint_policy"
+                  ]
+                }
+              }
+            }
+          },
+          "required": [
+            "generator_bits"
+          ],
+          "$ref": "#/$defs/arm"
+        },
+        {
+          "properties": {
+            "arm_id": {
+              "const": "G0-02"
+            },
+            "row_index": {
+              "const": 2
+            },
+            "role": {
+              "const": "L8_screening_arm"
+            },
+            "foldover": {
+              "const": false
+            },
+            "level_string": {
+              "const": "0101011"
+            },
+            "levels": {
+              "const": {
+                "checkpoint_policy": 1,
+                "dx_gemm_backend": 0,
+                "dy_gemm_backend": 1,
+                "dy_relu_epilogue_layout": 1,
+                "e_gemm": 0,
+                "full_symmetric_qk_sm120": 0,
+                "qk_backward": 1
+              }
+            },
+            "generator_bits": {
+              "const": {
+                "x": 0,
+                "y": 1,
+                "z": 0
+              }
+            },
+            "patch_spec": {
+              "properties": {
+                "patch_id": {
+                  "const": "G0-02"
+                },
+                "selected_levels": {
+                  "const": {
+                    "checkpoint_policy": "selective_exact_projection_only",
+                    "dx_gemm_backend": "control_dx_gemm",
+                    "dy_gemm_backend": "native_sm120_dy_gemm",
+                    "dy_relu_epilogue_layout": "exact_dy_relu_epilogue_layout",
+                    "e_gemm": "reference_e_gemm",
+                    "full_symmetric_qk_sm120": "control_full_symmetric_qk",
+                    "qk_backward": "native_tied_qk_vjp"
+                  }
+                },
+                "active_high_factors": {
+                  "const": [
+                    "qk_backward",
+                    "dy_gemm_backend",
+                    "dy_relu_epilogue_layout",
+                    "checkpoint_policy"
+                  ]
+                }
+              }
+            }
+          },
+          "required": [
+            "generator_bits"
+          ],
+          "$ref": "#/$defs/arm"
+        },
+        {
+          "properties": {
+            "arm_id": {
+              "const": "G0-03"
+            },
+            "row_index": {
+              "const": 3
+            },
+            "role": {
+              "const": "L8_screening_arm"
+            },
+            "foldover": {
+              "const": false
+            },
+            "level_string": {
+              "const": "0111100"
+            },
+            "levels": {
+              "const": {
+                "checkpoint_policy": 0,
+                "dx_gemm_backend": 1,
+                "dy_gemm_backend": 1,
+                "dy_relu_epilogue_layout": 0,
+                "e_gemm": 1,
+                "full_symmetric_qk_sm120": 0,
+                "qk_backward": 1
+              }
+            },
+            "generator_bits": {
+              "const": {
+                "x": 0,
+                "y": 1,
+                "z": 1
+              }
+            },
+            "patch_spec": {
+              "properties": {
+                "patch_id": {
+                  "const": "G0-03"
+                },
+                "selected_levels": {
+                  "const": {
+                    "checkpoint_policy": "gram_only_sac",
+                    "dx_gemm_backend": "native_sm120_dx_gemm",
+                    "dy_gemm_backend": "native_sm120_dy_gemm",
+                    "dy_relu_epilogue_layout": "materialized_baseline_layout",
+                    "e_gemm": "native_sm120_e_gemm",
+                    "full_symmetric_qk_sm120": "control_full_symmetric_qk",
+                    "qk_backward": "native_tied_qk_vjp"
+                  }
+                },
+                "active_high_factors": {
+                  "const": [
+                    "qk_backward",
+                    "dx_gemm_backend",
+                    "dy_gemm_backend",
+                    "e_gemm"
+                  ]
+                }
+              }
+            }
+          },
+          "required": [
+            "generator_bits"
+          ],
+          "$ref": "#/$defs/arm"
+        },
+        {
+          "properties": {
+            "arm_id": {
+              "const": "G0-04"
+            },
+            "row_index": {
+              "const": 4
+            },
+            "role": {
+              "const": "L8_screening_arm"
+            },
+            "foldover": {
+              "const": false
+            },
+            "level_string": {
+              "const": "1001101"
+            },
+            "levels": {
+              "const": {
+                "checkpoint_policy": 1,
+                "dx_gemm_backend": 0,
+                "dy_gemm_backend": 1,
+                "dy_relu_epilogue_layout": 0,
+                "e_gemm": 1,
+                "full_symmetric_qk_sm120": 1,
+                "qk_backward": 0
+              }
+            },
+            "generator_bits": {
+              "const": {
+                "x": 1,
+                "y": 0,
+                "z": 0
+              }
+            },
+            "patch_spec": {
+              "properties": {
+                "patch_id": {
+                  "const": "G0-04"
+                },
+                "selected_levels": {
+                  "const": {
+                    "checkpoint_policy": "selective_exact_projection_only",
+                    "dx_gemm_backend": "control_dx_gemm",
+                    "dy_gemm_backend": "native_sm120_dy_gemm",
+                    "dy_relu_epilogue_layout": "materialized_baseline_layout",
+                    "e_gemm": "native_sm120_e_gemm",
+                    "full_symmetric_qk_sm120": "native_sm120_full_symmetric_qk",
+                    "qk_backward": "control_tied_qk_vjp"
+                  }
+                },
+                "active_high_factors": {
+                  "const": [
+                    "full_symmetric_qk_sm120",
+                    "dy_gemm_backend",
+                    "e_gemm",
+                    "checkpoint_policy"
+                  ]
+                }
+              }
+            }
+          },
+          "required": [
+            "generator_bits"
+          ],
+          "$ref": "#/$defs/arm"
+        },
+        {
+          "properties": {
+            "arm_id": {
+              "const": "G0-05"
+            },
+            "row_index": {
+              "const": 5
+            },
+            "role": {
+              "const": "L8_screening_arm"
+            },
+            "foldover": {
+              "const": false
+            },
+            "level_string": {
+              "const": "1011010"
+            },
+            "levels": {
+              "const": {
+                "checkpoint_policy": 0,
+                "dx_gemm_backend": 1,
+                "dy_gemm_backend": 1,
+                "dy_relu_epilogue_layout": 1,
+                "e_gemm": 0,
+                "full_symmetric_qk_sm120": 1,
+                "qk_backward": 0
+              }
+            },
+            "generator_bits": {
+              "const": {
+                "x": 1,
+                "y": 0,
+                "z": 1
+              }
+            },
+            "patch_spec": {
+              "properties": {
+                "patch_id": {
+                  "const": "G0-05"
+                },
+                "selected_levels": {
+                  "const": {
+                    "checkpoint_policy": "gram_only_sac",
+                    "dx_gemm_backend": "native_sm120_dx_gemm",
+                    "dy_gemm_backend": "native_sm120_dy_gemm",
+                    "dy_relu_epilogue_layout": "exact_dy_relu_epilogue_layout",
+                    "e_gemm": "reference_e_gemm",
+                    "full_symmetric_qk_sm120": "native_sm120_full_symmetric_qk",
+                    "qk_backward": "control_tied_qk_vjp"
+                  }
+                },
+                "active_high_factors": {
+                  "const": [
+                    "full_symmetric_qk_sm120",
+                    "dx_gemm_backend",
+                    "dy_gemm_backend",
+                    "dy_relu_epilogue_layout"
+                  ]
+                }
+              }
+            }
+          },
+          "required": [
+            "generator_bits"
+          ],
+          "$ref": "#/$defs/arm"
+        },
+        {
+          "properties": {
+            "arm_id": {
+              "const": "G0-06"
+            },
+            "row_index": {
+              "const": 6
+            },
+            "role": {
+              "const": "L8_screening_arm"
+            },
+            "foldover": {
+              "const": false
+            },
+            "level_string": {
+              "const": "1100110"
+            },
+            "levels": {
+              "const": {
+                "checkpoint_policy": 0,
+                "dx_gemm_backend": 0,
+                "dy_gemm_backend": 0,
+                "dy_relu_epilogue_layout": 1,
+                "e_gemm": 1,
+                "full_symmetric_qk_sm120": 1,
+                "qk_backward": 1
+              }
+            },
+            "generator_bits": {
+              "const": {
+                "x": 1,
+                "y": 1,
+                "z": 0
+              }
+            },
+            "patch_spec": {
+              "properties": {
+                "patch_id": {
+                  "const": "G0-06"
+                },
+                "selected_levels": {
+                  "const": {
+                    "checkpoint_policy": "gram_only_sac",
+                    "dx_gemm_backend": "control_dx_gemm",
+                    "dy_gemm_backend": "control_dy_gemm",
+                    "dy_relu_epilogue_layout": "exact_dy_relu_epilogue_layout",
+                    "e_gemm": "native_sm120_e_gemm",
+                    "full_symmetric_qk_sm120": "native_sm120_full_symmetric_qk",
+                    "qk_backward": "native_tied_qk_vjp"
+                  }
+                },
+                "active_high_factors": {
+                  "const": [
+                    "full_symmetric_qk_sm120",
+                    "qk_backward",
+                    "e_gemm",
+                    "dy_relu_epilogue_layout"
+                  ]
+                }
+              }
+            }
+          },
+          "required": [
+            "generator_bits"
+          ],
+          "$ref": "#/$defs/arm"
+        },
+        {
+          "properties": {
+            "arm_id": {
+              "const": "G0-07"
+            },
+            "row_index": {
+              "const": 7
+            },
+            "role": {
+              "const": "L8_screening_arm"
+            },
+            "foldover": {
+              "const": false
+            },
+            "level_string": {
+              "const": "1110001"
+            },
+            "levels": {
+              "const": {
+                "checkpoint_policy": 1,
+                "dx_gemm_backend": 1,
+                "dy_gemm_backend": 0,
+                "dy_relu_epilogue_layout": 0,
+                "e_gemm": 0,
+                "full_symmetric_qk_sm120": 1,
+                "qk_backward": 1
+              }
+            },
+            "generator_bits": {
+              "const": {
+                "x": 1,
+                "y": 1,
+                "z": 1
+              }
+            },
+            "patch_spec": {
+              "properties": {
+                "patch_id": {
+                  "const": "G0-07"
+                },
+                "selected_levels": {
+                  "const": {
+                    "checkpoint_policy": "selective_exact_projection_only",
+                    "dx_gemm_backend": "native_sm120_dx_gemm",
+                    "dy_gemm_backend": "control_dy_gemm",
+                    "dy_relu_epilogue_layout": "materialized_baseline_layout",
+                    "e_gemm": "reference_e_gemm",
+                    "full_symmetric_qk_sm120": "native_sm120_full_symmetric_qk",
+                    "qk_backward": "native_tied_qk_vjp"
+                  }
+                },
+                "active_high_factors": {
+                  "const": [
+                    "full_symmetric_qk_sm120",
+                    "qk_backward",
+                    "dx_gemm_backend",
+                    "checkpoint_policy"
+                  ]
+                }
+              }
+            }
+          },
+          "required": [
+            "generator_bits"
+          ],
+          "$ref": "#/$defs/arm"
+        },
+        {
+          "properties": {
+            "arm_id": {
+              "const": "G0-F00"
+            },
+            "row_index": {
+              "const": 8
+            },
+            "role": {
+              "const": "full_foldover_arm"
+            },
+            "foldover": {
+              "const": true
+            },
+            "level_string": {
+              "const": "1111111"
+            },
+            "levels": {
+              "const": {
+                "checkpoint_policy": 1,
+                "dx_gemm_backend": 1,
+                "dy_gemm_backend": 1,
+                "dy_relu_epilogue_layout": 1,
+                "e_gemm": 1,
+                "full_symmetric_qk_sm120": 1,
+                "qk_backward": 1
+              }
+            },
+            "source_arm_id": {
+              "const": "G0-00"
+            },
+            "patch_spec": {
+              "properties": {
+                "patch_id": {
+                  "const": "G0-F00"
+                },
+                "selected_levels": {
+                  "const": {
+                    "checkpoint_policy": "selective_exact_projection_only",
+                    "dx_gemm_backend": "native_sm120_dx_gemm",
+                    "dy_gemm_backend": "native_sm120_dy_gemm",
+                    "dy_relu_epilogue_layout": "exact_dy_relu_epilogue_layout",
+                    "e_gemm": "native_sm120_e_gemm",
+                    "full_symmetric_qk_sm120": "native_sm120_full_symmetric_qk",
+                    "qk_backward": "native_tied_qk_vjp"
+                  }
+                },
+                "active_high_factors": {
+                  "const": [
+                    "full_symmetric_qk_sm120",
+                    "qk_backward",
+                    "dx_gemm_backend",
+                    "dy_gemm_backend",
+                    "e_gemm",
+                    "dy_relu_epilogue_layout",
+                    "checkpoint_policy"
+                  ]
+                }
+              }
+            }
+          },
+          "required": [
+            "source_arm_id"
+          ],
+          "$ref": "#/$defs/arm"
+        },
+        {
+          "properties": {
+            "arm_id": {
+              "const": "G0-F01"
+            },
+            "row_index": {
+              "const": 9
+            },
+            "role": {
+              "const": "full_foldover_arm"
+            },
+            "foldover": {
+              "const": true
+            },
+            "level_string": {
+              "const": "1101000"
+            },
+            "levels": {
+              "const": {
+                "checkpoint_policy": 0,
+                "dx_gemm_backend": 0,
+                "dy_gemm_backend": 1,
+                "dy_relu_epilogue_layout": 0,
+                "e_gemm": 0,
+                "full_symmetric_qk_sm120": 1,
+                "qk_backward": 1
+              }
+            },
+            "source_arm_id": {
+              "const": "G0-01"
+            },
+            "patch_spec": {
+              "properties": {
+                "patch_id": {
+                  "const": "G0-F01"
+                },
+                "selected_levels": {
+                  "const": {
+                    "checkpoint_policy": "gram_only_sac",
+                    "dx_gemm_backend": "control_dx_gemm",
+                    "dy_gemm_backend": "native_sm120_dy_gemm",
+                    "dy_relu_epilogue_layout": "materialized_baseline_layout",
+                    "e_gemm": "reference_e_gemm",
+                    "full_symmetric_qk_sm120": "native_sm120_full_symmetric_qk",
+                    "qk_backward": "native_tied_qk_vjp"
+                  }
+                },
+                "active_high_factors": {
+                  "const": [
+                    "full_symmetric_qk_sm120",
+                    "qk_backward",
+                    "dy_gemm_backend"
+                  ]
+                }
+              }
+            }
+          },
+          "required": [
+            "source_arm_id"
+          ],
+          "$ref": "#/$defs/arm"
+        },
+        {
+          "properties": {
+            "arm_id": {
+              "const": "G0-F02"
+            },
+            "row_index": {
+              "const": 10
+            },
+            "role": {
+              "const": "full_foldover_arm"
+            },
+            "foldover": {
+              "const": true
+            },
+            "level_string": {
+              "const": "1010100"
+            },
+            "levels": {
+              "const": {
+                "checkpoint_policy": 0,
+                "dx_gemm_backend": 1,
+                "dy_gemm_backend": 0,
+                "dy_relu_epilogue_layout": 0,
+                "e_gemm": 1,
+                "full_symmetric_qk_sm120": 1,
+                "qk_backward": 0
+              }
+            },
+            "source_arm_id": {
+              "const": "G0-02"
+            },
+            "patch_spec": {
+              "properties": {
+                "patch_id": {
+                  "const": "G0-F02"
+                },
+                "selected_levels": {
+                  "const": {
+                    "checkpoint_policy": "gram_only_sac",
+                    "dx_gemm_backend": "native_sm120_dx_gemm",
+                    "dy_gemm_backend": "control_dy_gemm",
+                    "dy_relu_epilogue_layout": "materialized_baseline_layout",
+                    "e_gemm": "native_sm120_e_gemm",
+                    "full_symmetric_qk_sm120": "native_sm120_full_symmetric_qk",
+                    "qk_backward": "control_tied_qk_vjp"
+                  }
+                },
+                "active_high_factors": {
+                  "const": [
+                    "full_symmetric_qk_sm120",
+                    "dx_gemm_backend",
+                    "e_gemm"
+                  ]
+                }
+              }
+            }
+          },
+          "required": [
+            "source_arm_id"
+          ],
+          "$ref": "#/$defs/arm"
+        },
+        {
+          "properties": {
+            "arm_id": {
+              "const": "G0-F03"
+            },
+            "row_index": {
+              "const": 11
+            },
+            "role": {
+              "const": "full_foldover_arm"
+            },
+            "foldover": {
+              "const": true
+            },
+            "level_string": {
+              "const": "1000011"
+            },
+            "levels": {
+              "const": {
+                "checkpoint_policy": 1,
+                "dx_gemm_backend": 0,
+                "dy_gemm_backend": 0,
+                "dy_relu_epilogue_layout": 1,
+                "e_gemm": 0,
+                "full_symmetric_qk_sm120": 1,
+                "qk_backward": 0
+              }
+            },
+            "source_arm_id": {
+              "const": "G0-03"
+            },
+            "patch_spec": {
+              "properties": {
+                "patch_id": {
+                  "const": "G0-F03"
+                },
+                "selected_levels": {
+                  "const": {
+                    "checkpoint_policy": "selective_exact_projection_only",
+                    "dx_gemm_backend": "control_dx_gemm",
+                    "dy_gemm_backend": "control_dy_gemm",
+                    "dy_relu_epilogue_layout": "exact_dy_relu_epilogue_layout",
+                    "e_gemm": "reference_e_gemm",
+                    "full_symmetric_qk_sm120": "native_sm120_full_symmetric_qk",
+                    "qk_backward": "control_tied_qk_vjp"
+                  }
+                },
+                "active_high_factors": {
+                  "const": [
+                    "full_symmetric_qk_sm120",
+                    "dy_relu_epilogue_layout",
+                    "checkpoint_policy"
+                  ]
+                }
+              }
+            }
+          },
+          "required": [
+            "source_arm_id"
+          ],
+          "$ref": "#/$defs/arm"
+        },
+        {
+          "properties": {
+            "arm_id": {
+              "const": "G0-F04"
+            },
+            "row_index": {
+              "const": 12
+            },
+            "role": {
+              "const": "full_foldover_arm"
+            },
+            "foldover": {
+              "const": true
+            },
+            "level_string": {
+              "const": "0110010"
+            },
+            "levels": {
+              "const": {
+                "checkpoint_policy": 0,
+                "dx_gemm_backend": 1,
+                "dy_gemm_backend": 0,
+                "dy_relu_epilogue_layout": 1,
+                "e_gemm": 0,
+                "full_symmetric_qk_sm120": 0,
+                "qk_backward": 1
+              }
+            },
+            "source_arm_id": {
+              "const": "G0-04"
+            },
+            "patch_spec": {
+              "properties": {
+                "patch_id": {
+                  "const": "G0-F04"
+                },
+                "selected_levels": {
+                  "const": {
+                    "checkpoint_policy": "gram_only_sac",
+                    "dx_gemm_backend": "native_sm120_dx_gemm",
+                    "dy_gemm_backend": "control_dy_gemm",
+                    "dy_relu_epilogue_layout": "exact_dy_relu_epilogue_layout",
+                    "e_gemm": "reference_e_gemm",
+                    "full_symmetric_qk_sm120": "control_full_symmetric_qk",
+                    "qk_backward": "native_tied_qk_vjp"
+                  }
+                },
+                "active_high_factors": {
+                  "const": [
+                    "qk_backward",
+                    "dx_gemm_backend",
+                    "dy_relu_epilogue_layout"
+                  ]
+                }
+              }
+            }
+          },
+          "required": [
+            "source_arm_id"
+          ],
+          "$ref": "#/$defs/arm"
+        },
+        {
+          "properties": {
+            "arm_id": {
+              "const": "G0-F06"
+            },
+            "row_index": {
+              "const": 14
+            },
+            "role": {
+              "const": "full_foldover_arm"
+            },
+            "foldover": {
+              "const": true
+            },
+            "level_string": {
+              "const": "0011001"
+            },
+            "levels": {
+              "const": {
+                "checkpoint_policy": 1,
+                "dx_gemm_backend": 1,
+                "dy_gemm_backend": 1,
+                "dy_relu_epilogue_layout": 0,
+                "e_gemm": 0,
+                "full_symmetric_qk_sm120": 0,
+                "qk_backward": 0
+              }
+            },
+            "source_arm_id": {
+              "const": "G0-06"
+            },
+            "patch_spec": {
+              "properties": {
+                "patch_id": {
+                  "const": "G0-F06"
+                },
+                "selected_levels": {
+                  "const": {
+                    "checkpoint_policy": "selective_exact_projection_only",
+                    "dx_gemm_backend": "native_sm120_dx_gemm",
+                    "dy_gemm_backend": "native_sm120_dy_gemm",
+                    "dy_relu_epilogue_layout": "materialized_baseline_layout",
+                    "e_gemm": "reference_e_gemm",
+                    "full_symmetric_qk_sm120": "control_full_symmetric_qk",
+                    "qk_backward": "control_tied_qk_vjp"
+                  }
+                },
+                "active_high_factors": {
+                  "const": [
+                    "dx_gemm_backend",
+                    "dy_gemm_backend",
+                    "checkpoint_policy"
+                  ]
+                }
+              }
+            }
+          },
+          "required": [
+            "source_arm_id"
+          ],
+          "$ref": "#/$defs/arm"
+        },
+        {
+          "properties": {
+            "arm_id": {
+              "const": "G0-F07"
+            },
+            "row_index": {
+              "const": 15
+            },
+            "role": {
+              "const": "full_foldover_arm"
+            },
+            "foldover": {
+              "const": true
+            },
+            "level_string": {
+              "const": "0001110"
+            },
+            "levels": {
+              "const": {
+                "checkpoint_policy": 0,
+                "dx_gemm_backend": 0,
+                "dy_gemm_backend": 1,
+                "dy_relu_epilogue_layout": 1,
+                "e_gemm": 1,
+                "full_symmetric_qk_sm120": 0,
+                "qk_backward": 0
+              }
+            },
+            "source_arm_id": {
+              "const": "G0-07"
+            },
+            "patch_spec": {
+              "properties": {
+                "patch_id": {
+                  "const": "G0-F07"
+                },
+                "selected_levels": {
+                  "const": {
+                    "checkpoint_policy": "gram_only_sac",
+                    "dx_gemm_backend": "control_dx_gemm",
+                    "dy_gemm_backend": "native_sm120_dy_gemm",
+                    "dy_relu_epilogue_layout": "exact_dy_relu_epilogue_layout",
+                    "e_gemm": "native_sm120_e_gemm",
+                    "full_symmetric_qk_sm120": "control_full_symmetric_qk",
+                    "qk_backward": "control_tied_qk_vjp"
+                  }
+                },
+                "active_high_factors": {
+                  "const": [
+                    "dy_gemm_backend",
+                    "e_gemm",
+                    "dy_relu_epilogue_layout"
+                  ]
+                }
+              }
+            }
+          },
+          "required": [
+            "source_arm_id"
+          ],
+          "$ref": "#/$defs/arm"
+        }
+      ]
+    },
+    "run_order": {
+      "type": "array",
+      "minItems": 50,
+      "maxItems": 50,
+      "items": {
+        "type": "object",
+        "required": [
+          "run_id",
+          "arm_id",
+          "block_id",
+          "within_block_position",
+          "kind",
+          "control_interleaved",
+          "oracle_required",
+          "randomization_seed"
+        ],
+        "properties": {
+          "run_id": {
+            "type": "string",
+            "pattern": "^G0-R(0[1-46-9]|[12][0-9]|3[0-9]|4[1-9]|5[0-2])$"
+          },
+          "arm_id": {
+            "enum": [
+              "CONTROL",
+              "G0-00",
+              "G0-01",
+              "G0-02",
+              "G0-03",
+              "G0-04",
+              "G0-05",
+              "G0-06",
+              "G0-07",
+              "G0-F00",
+              "G0-F01",
+              "G0-F02",
+              "G0-F03",
+              "G0-F04",
+              "G0-F06",
+              "G0-F07"
+            ]
+          },
+          "block_id": {
+            "type": "integer",
+            "enum": [
+              1,
+              2
+            ]
+          },
+          "within_block_position": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 26
+          },
+          "kind": {
+            "enum": [
+              "control_anchor",
+              "control_interleave",
+              "arm"
+            ]
+          },
+          "control_interleaved": {
+            "type": "boolean"
+          },
+          "oracle_required": {
+            "const": true
+          },
+          "randomization_seed": {
+            "const": 20260909
+          }
+        },
+        "additionalProperties": true,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "arm_id": {
+                  "const": "CONTROL"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "control_anchor",
+                    "control_interleave"
+                  ]
+                },
+                "control_interleaved": {
+                  "const": true
+                }
+              }
+            },
+            "else": {
+              "properties": {
+                "kind": {
+                  "const": "arm"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "arm_id": {
+                  "enum": [
+                    "CONTROL",
+                    "G0-00"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "control_interleaved": {
+                  "const": true
+                }
+              }
+            },
+            "else": {
+              "properties": {
+                "control_interleaved": {
+                  "const": false
+                }
+              }
+            }
+          }
+        ]
+      },
+      "uniqueItems": true,
+      "contains": {
+        "properties": {
+          "arm_id": {
+            "const": "CONTROL"
+          }
+        },
+        "required": [
+          "arm_id"
+        ]
+      },
+      "minContains": 20,
+      "maxContains": 20
+    },
+    "excluded_cells": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "arm_id",
+          "status",
+          "result_policy",
+          "level_string",
+          "reason",
+          "evidence_campaign"
+        ],
+        "properties": {
+          "arm_id": {
+            "const": "G0-F05"
+          },
+          "status": {
+            "const": "STRUCTURALLY_INFEASIBLE"
+          },
+          "result_policy": {
+            "const": "excluded, never imputed or admitted as a measured result"
+          },
+          "level_string": {
+            "const": "0100101"
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          },
+          "evidence_campaign": {
+            "const": "iclr-g0-0ce16e9922b2"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "design": {
+      "type": "object",
+      "required": [
+        "exact_orthogonality",
+        "main_effect_rank_with_intercept",
+        "missing_cell_caveat",
+        "factor_order",
+        "treatment_arms",
+        "control_slots",
+        "run_slots"
+      ],
+      "properties": {
+        "exact_orthogonality": {
+          "const": false
+        },
+        "main_effect_rank_with_intercept": {
+          "const": 8
+        },
+        "missing_cell_caveat": {
+          "type": "string",
+          "minLength": 1
+        },
+        "factor_order": {
+          "const": [
+            "full_symmetric_qk_sm120",
+            "qk_backward",
+            "dx_gemm_backend",
+            "dy_gemm_backend",
+            "e_gemm",
+            "dy_relu_epilogue_layout",
+            "checkpoint_policy"
+          ]
+        },
+        "treatment_arms": {
+          "const": 15
+        },
+        "control_slots": {
+          "const": 20
+        },
+        "run_slots": {
+          "const": 50
+        }
+      },
+      "additionalProperties": true
+    },
+    "interaction_aliases": {
+      "type": "object",
+      "required": [
+        "main_effects_dealiased_from_two_factor_interactions",
+        "missing_cell_caveat"
+      ],
+      "properties": {
+        "main_effects_dealiased_from_two_factor_interactions": {
+          "const": false
+        },
+        "missing_cell_caveat": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": true
+    },
+    "contract_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "control_experiment": {
+      "const": "0000"
+    },
+    "execution_mode": {
+      "const": "candidate_worktree_only_gpu_harness"
+    },
+    "control_reference": {
+      "const": {
+        "canonical_source": "vendor/canonical/icrl_reintegrated_bdh_baseline_v1.py",
+        "canonical_source_sha256": "947f8b33e740adede3e13382f8cb9e8e374d845de75e282bda5feb05c582f624",
+        "champion_branch": "codex/champion/0000-validated-bdh-baseline",
+        "champion_commit": "908b0b1438ba038d319adf97787aac08f213b590",
+        "checkpoint_policy": "gram_only_sac",
+        "control_equivalence": "byte-equivalent canonical source and behavior-equivalent exact Arm-A treatment before any factor is enabled",
+        "experiment_id": "0000",
+        "factor_levels": {
+          "checkpoint_policy": "gram_only_sac",
+          "dx_gemm_backend": "control_dx_gemm",
+          "dy_gemm_backend": "control_dy_gemm",
+          "dy_relu_epilogue_layout": "materialized_baseline_layout",
+          "e_gemm": "reference_e_gemm",
+          "full_symmetric_qk_sm120": "control_full_symmetric_qk",
+          "qk_backward": "control_tied_qk_vjp"
+        }
+      }
+    },
+    "control_verification": {
+      "const": {
+        "all_factor_low_levels_match_experiment_0000": true,
+        "behavior_equivalent_frozen_arm_a_contract": true,
+        "byte_equivalent_canonical_source": true,
+        "canonical_source_sha256": "947f8b33e740adede3e13382f8cb9e8e374d845de75e282bda5feb05c582f624",
+        "champion_mutation": "forbidden_until_results_analysis",
+        "g0_00_has_no_factor_operations": true,
+        "runtime_oracle_required_before_timing": true,
+        "status": "PASS_STATIC_CONTROL_GATES"
+      }
+    },
+    "result_contract": {
+      "const": {
+        "append_only": true,
+        "format": "JSONL",
+        "one_record_per_run_id": true,
+        "required_fields": [
+          "schema_version",
+          "plan_id",
+          "source_commit",
+          "harness_commit",
+          "run_id",
+          "arm_id",
+          "treatment_id",
+          "attempt_id",
+          "block_id",
+          "within_block_position",
+          "selected_levels",
+          "oracle",
+          "latency_ms",
+          "real_input_tok_s",
+          "peak_GiB",
+          "samples_ms",
+          "warmups",
+          "timed_repetitions",
+          "timing",
+          "memory",
+          "provenance",
+          "validation",
+          "admission",
+          "execution",
+          "decision"
+        ],
+        "schema": "schemas/generation0_result.schema.json"
+      }
+    },
+    "randomization": {
+      "type": "object",
+      "required": [
+        "seed",
+        "blocks",
+        "replicates_per_arm",
+        "control_interleave",
+        "thermal_drift_covariate"
+      ],
+      "properties": {
+        "seed": {
+          "const": 20260909
+        },
+        "blocks": {
+          "const": 2
+        },
+        "replicates_per_arm": {
+          "const": 2
+        },
+        "control_interleave": {
+          "type": "string",
+          "minLength": 1
+        },
+        "thermal_drift_covariate": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": true
+    },
+    "objective": {
+      "type": "object",
+      "required": [
+        "benchmark",
+        "oracle_before_timing",
+        "target_real_tok_s"
+      ],
+      "properties": {
+        "benchmark": {
+          "const": "B32 exact F+B"
+        },
+        "oracle_before_timing": {
+          "const": true
+        },
+        "target_real_tok_s": {
+          "const": 90000
+        }
+      },
+      "additionalProperties": true
+    },
+    "foldover": {
+      "type": "object",
+      "required": [
+        "additional_arms",
+        "main_effect_two_factor_aliases_resolved",
+        "remaining_aliases",
+        "source_rows",
+        "total_treatment_arms",
+        "type"
+      ],
+      "properties": {
+        "source_rows": {
+          "const": 8
+        },
+        "additional_arms": {
+          "const": 7
+        },
+        "total_treatment_arms": {
+          "const": 15
+        },
+        "main_effect_two_factor_aliases_resolved": {
+          "const": false
+        },
+        "type": {
+          "const": "original_bitwise_complement_minus_structurally_infeasible_F05"
+        },
+        "remaining_aliases": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": true
+    }
   },
-  "additionalProperties": true
+  "additionalProperties": true,
+  "$comment": "C15 structural constraints and frozen factor/arm assignments. Runtime validation remains authoritative for generated order, hashes, scientific invariants and regression claims.",
+  "$defs": {
+    "selected_levels": {
+      "type": "object",
+      "required": [
+        "full_symmetric_qk_sm120",
+        "qk_backward",
+        "dx_gemm_backend",
+        "dy_gemm_backend",
+        "e_gemm",
+        "dy_relu_epilogue_layout",
+        "checkpoint_policy"
+      ],
+      "properties": {
+        "full_symmetric_qk_sm120": {
+          "enum": [
+            "control_full_symmetric_qk",
+            "native_sm120_full_symmetric_qk"
+          ]
+        },
+        "qk_backward": {
+          "enum": [
+            "control_tied_qk_vjp",
+            "native_tied_qk_vjp"
+          ]
+        },
+        "dx_gemm_backend": {
+          "enum": [
+            "control_dx_gemm",
+            "native_sm120_dx_gemm"
+          ]
+        },
+        "dy_gemm_backend": {
+          "enum": [
+            "control_dy_gemm",
+            "native_sm120_dy_gemm"
+          ]
+        },
+        "dy_relu_epilogue_layout": {
+          "enum": [
+            "materialized_baseline_layout",
+            "exact_dy_relu_epilogue_layout"
+          ]
+        },
+        "e_gemm": {
+          "enum": [
+            "reference_e_gemm",
+            "native_sm120_e_gemm"
+          ]
+        },
+        "checkpoint_policy": {
+          "enum": [
+            "gram_only_sac",
+            "selective_exact_projection_only"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "arm": {
+      "type": "object",
+      "required": [
+        "arm_id",
+        "row_index",
+        "role",
+        "foldover",
+        "level_string",
+        "levels",
+        "patch_spec"
+      ],
+      "properties": {
+        "arm_id": {
+          "enum": [
+            "G0-00",
+            "G0-01",
+            "G0-02",
+            "G0-03",
+            "G0-04",
+            "G0-05",
+            "G0-06",
+            "G0-07",
+            "G0-F00",
+            "G0-F01",
+            "G0-F02",
+            "G0-F03",
+            "G0-F04",
+            "G0-F06",
+            "G0-F07"
+          ]
+        },
+        "row_index": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 15
+        },
+        "role": {
+          "enum": [
+            "baseline_control",
+            "L8_screening_arm",
+            "full_foldover_arm"
+          ]
+        },
+        "foldover": {
+          "type": "boolean"
+        },
+        "level_string": {
+          "type": "string",
+          "pattern": "^[01]{7}$"
+        },
+        "levels": {
+          "type": "object",
+          "required": [
+            "full_symmetric_qk_sm120",
+            "qk_backward",
+            "dx_gemm_backend",
+            "dy_gemm_backend",
+            "e_gemm",
+            "dy_relu_epilogue_layout",
+            "checkpoint_policy"
+          ],
+          "properties": {
+            "full_symmetric_qk_sm120": {
+              "type": "integer",
+              "enum": [
+                0,
+                1
+              ]
+            },
+            "qk_backward": {
+              "type": "integer",
+              "enum": [
+                0,
+                1
+              ]
+            },
+            "dx_gemm_backend": {
+              "type": "integer",
+              "enum": [
+                0,
+                1
+              ]
+            },
+            "dy_gemm_backend": {
+              "type": "integer",
+              "enum": [
+                0,
+                1
+              ]
+            },
+            "e_gemm": {
+              "type": "integer",
+              "enum": [
+                0,
+                1
+              ]
+            },
+            "dy_relu_epilogue_layout": {
+              "type": "integer",
+              "enum": [
+                0,
+                1
+              ]
+            },
+            "checkpoint_policy": {
+              "type": "integer",
+              "enum": [
+                0,
+                1
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        "patch_spec": {
+          "type": "object",
+          "required": [
+            "patch_id",
+            "selected_levels",
+            "active_high_factors",
+            "control_reference",
+            "status",
+            "allowed_change_class",
+            "champion_mutation",
+            "parent_experiment",
+            "operations",
+            "measurement",
+            "required_invariants",
+            "forbidden_operations"
+          ],
+          "properties": {
+            "patch_id": {
+              "enum": [
+                "G0-00",
+                "G0-01",
+                "G0-02",
+                "G0-03",
+                "G0-04",
+                "G0-05",
+                "G0-06",
+                "G0-07",
+                "G0-F00",
+                "G0-F01",
+                "G0-F02",
+                "G0-F03",
+                "G0-F04",
+                "G0-F06",
+                "G0-F07"
+              ]
+            },
+            "selected_levels": {
+              "$ref": "#/$defs/selected_levels"
+            },
+            "active_high_factors": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "enum": [
+                  "full_symmetric_qk_sm120",
+                  "qk_backward",
+                  "dx_gemm_backend",
+                  "dy_gemm_backend",
+                  "e_gemm",
+                  "dy_relu_epilogue_layout",
+                  "checkpoint_policy"
+                ]
+              }
+            },
+            "control_reference": {
+              "const": {
+                "canonical_source": "vendor/canonical/icrl_reintegrated_bdh_baseline_v1.py",
+                "canonical_source_sha256": "947f8b33e740adede3e13382f8cb9e8e374d845de75e282bda5feb05c582f624",
+                "champion_branch": "codex/champion/0000-validated-bdh-baseline",
+                "champion_commit": "908b0b1438ba038d319adf97787aac08f213b590",
+                "checkpoint_policy": "gram_only_sac",
+                "experiment_id": "0000"
+              }
+            },
+            "status": {
+              "const": "READY_FOR_EXPLICIT_EXECUTION"
+            },
+            "allowed_change_class": {
+              "const": "execution_representation_only"
+            },
+            "champion_mutation": {
+              "const": "forbidden"
+            },
+            "parent_experiment": {
+              "const": "0000"
+            },
+            "operations": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "factor",
+                  "operation",
+                  "status"
+                ],
+                "properties": {
+                  "factor": {
+                    "enum": [
+                      "full_symmetric_qk_sm120",
+                      "qk_backward",
+                      "dx_gemm_backend",
+                      "dy_gemm_backend",
+                      "e_gemm",
+                      "dy_relu_epilogue_layout",
+                      "checkpoint_policy"
+                    ]
+                  },
+                  "operation": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "status": {
+                    "const": "READY_FOR_EXPLICIT_EXECUTION"
+                  }
+                },
+                "additionalProperties": true
+              }
+            },
+            "measurement": {
+              "type": "object",
+              "required": [
+                "benchmark",
+                "objective",
+                "oracle_before_timing"
+              ],
+              "properties": {
+                "benchmark": {
+                  "const": "B32"
+                },
+                "objective": {
+                  "const": "exact forward+backward latency_ms"
+                },
+                "oracle_before_timing": {
+                  "const": true
+                }
+              },
+              "additionalProperties": true
+            },
+            "required_invariants": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "forbidden_operations": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    }
+  }
 }
-
