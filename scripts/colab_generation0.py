@@ -1,8 +1,8 @@
 """One self-contained Google Colab cell for the repaired Generation-0 run.
 
 Paste this entire file into one Colab cell. By default it only prints preparation
-instructions. Set EXECUTE=True and pin ICRL_G0_HARNESS_COMMIT to the full commit
-containing the C15 implementation for a later manual run. Execution mounts the frozen Drive
+instructions. The cell is pinned to the full commit containing the C15 implementation;
+set EXECUTE=True for a later manual run. Execution mounts the frozen Drive
 corpus, fetches the public repository anonymously (or securely falls back
 to a short-lived askpass helper when authentication is needed), creates fresh
 planning/candidate worktrees at the pinned harness commit, and delegates all
@@ -31,7 +31,9 @@ import tempfile
 
 REPOSITORY = "https://github.com/arahe-dev/iclr-autoresearch.git"
 HARNESS_BRANCH = "codex/generation0/sm120-runner-20260909"
-HARNESS_COMMIT = os.environ.get("ICRL_G0_HARNESS_COMMIT", "")
+HARNESS_COMMIT = os.environ.get(
+    "ICRL_G0_HARNESS_COMMIT", "4ad29eb0aeef1f6f6a1e1512f8136556741afc66"
+)
 EXECUTE = False
 CHAMPION_BRANCH = "codex/champion/0000-validated-bdh-baseline"
 CHAMPION_COMMIT = "908b0b1438ba038d319adf97787aac08f213b590"
@@ -391,8 +393,8 @@ def main() -> None:
             "treatment_arms": 15, "run_slots": 50, "original_control_slots": 20,
             "excluded_cell": "G0-F05 (structurally infeasible; no imputed result)",
             "design": "constrained rank-complete; missing-cell caveat; no exact orthogonality or de-aliasing",
-            "harness_commit": HARNESS_COMMIT or "UNPINNED: parent must commit the C15 implementation first",
-            "manual_run": "Set ICRL_G0_HARNESS_COMMIT to that full 40-character SHA before pasting, and set EXECUTE=True.",
+            "harness_commit": HARNESS_COMMIT,
+            "manual_run": "The cell is pinned to this harness commit; set EXECUTE=True for a later manual run.",
             "preserved_campaign": "iclr-g0-0ce16e9922b2",
         }, indent=2, sort_keys=True))
         return
