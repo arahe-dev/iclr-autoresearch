@@ -32,7 +32,7 @@ import tempfile
 REPOSITORY = "https://github.com/arahe-dev/iclr-autoresearch.git"
 HARNESS_BRANCH = "codex/generation0/sm120-runner-20260909"
 HARNESS_COMMIT = os.environ.get(
-    "ICRL_G0_HARNESS_COMMIT", "c4afb7b34d2fdecc7baa55546c4e8b1e9816ff84"
+    "ICRL_G0_HARNESS_COMMIT", "f5d8253be2cf63cfda1dee58728996385ae2f310"
 )
 EXECUTE = False
 PREFLIGHT_ONLY = True
@@ -388,6 +388,8 @@ def run_supervisor(command: list[str], *, cwd: Path, env: dict[str, str], log_pa
 
 
 def main() -> None:
+    if PREFLIGHT_ONLY and RETRY_FAILED:
+        raise RuntimeError("PREFLIGHT_ONLY cannot be combined with RETRY_FAILED")
     if not EXECUTE:
         print(json.dumps({
             "status": "PREPARED_NO_EXECUTION", "plan_id": PLAN_ID,
@@ -395,8 +397,10 @@ def main() -> None:
             "excluded_cell": "G0-F05 (structurally infeasible; no imputed result)",
             "design": "constrained rank-complete; missing-cell caveat; no exact orthogonality or de-aliasing",
             "harness_commit": HARNESS_COMMIT,
+            "campaign_root": str(CAMPAIGN_ROOT),
             "preflight_only": PREFLIGHT_ONLY,
-            "manual_run": "The cell is pinned to this harness commit; set EXECUTE=True for a later manual run.",
+            "retry_failed": RETRY_FAILED,
+            "manual_run": "First set EXECUTE=True with PREFLIGHT_ONLY=True; after PREFLIGHT_ONLY passes, set PREFLIGHT_ONLY=False before running slots.",
             "preserved_campaign": "iclr-g0-0ce16e9922b2",
         }, indent=2, sort_keys=True))
         return
